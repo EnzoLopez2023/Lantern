@@ -1,0 +1,2321 @@
+{
+  "contract": "lantern.source-lineage.v1",
+  "generatedAt": "2026-08-28T23:16:04.219Z",
+  "source": {
+    "repository": "EnzoLopez2023/Hearth",
+    "version": "2.13.2",
+    "build": 172,
+    "commit": "f0b05fc1dbf53e8aa26c215d8e858894a2793871",
+    "tree": "62cbd35861c511f7c17187c875d19ee6e353b80d",
+    "imageDigest": "sha256:dc4df7e0f966be5b0608e71643d316cc5eba7590b8e56cec482583ab69443140"
+  },
+  "summary": {
+    "files": 235,
+    "sourceFiles": 225,
+    "exactCopies": 109,
+    "adapted": 116,
+    "lanternSupport": 10
+  },
+  "files": [
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "3f6b1601154ec5152d8596b5d84971a8316271ee",
+      "sourcePath": "src/ExamPrepHub/SC_11TH_GRADE_SPEC.md",
+      "destinationPath": "src/ExamPrepHub/SC_11TH_GRADE_SPEC.md",
+      "sourceSha256": "f8e4b3562398576fc3621bb1b3b940c1f3565ee507613882b59a363a5ecf9f6d",
+      "destinationSha256": "f8e4b3562398576fc3621bb1b3b940c1f3565ee507613882b59a363a5ecf9f6d",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "adccf1b6bd4cbbc135fd64e28acadd050cef1029",
+      "sourcePath": "src/ExamPrepHub/exams.ts",
+      "destinationPath": "src/ExamPrepHub/exams.ts",
+      "sourceSha256": "0d9156ed713a0d47e8023b403cb0c4556f48020cceebd48cb69a7937425403c6",
+      "destinationSha256": "0d9156ed713a0d47e8023b403cb0c4556f48020cceebd48cb69a7937425403c6",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "c8978fab3795a51a6b28ccd0b217e19e5a6ca099",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/Diagnostic.tsx",
+      "sourceSha256": "656743f7ec79f3f1f00c507ecf057315122de91418f84d95104cb4a7b932f7d7",
+      "destinationSha256": "85db40d8b6162917deead1e20d31f1ee8675bd2fcb6964c2ff700ab0c1a71f4d",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "42d53b92e4ff93c4996dc82c457cff5825086e63",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/ExamSandbox.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/ExamSandbox.tsx",
+      "sourceSha256": "66d96ed0b0b60838f68b058f0212e77c9e5bc368be7fd39053562bdae8774eeb",
+      "destinationSha256": "6e7a31ca4a2fa2e177df8c84107b621cb9c9d18ac7ff916d86dcb4d205a9378a",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "9c42665b6e5ef8fea2f50c9ab4ce6b6173ae0a56",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/Flashcards.tsx",
+      "sourceSha256": "f4202a0dd9968e12c574b529a6f3406f3b9eefcb7bf4175e486f68a52bb30e3a",
+      "destinationSha256": "f4202a0dd9968e12c574b529a6f3406f3b9eefcb7bf4175e486f68a52bb30e3a",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "306a8945f4f9b0f29826a01881e76b37b822af11",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/Practice.tsx",
+      "sourceSha256": "fa62670c5e0bb6afa970f6bcca6bdbaeddf4f2c36a6c4a70512709db74d8ff0a",
+      "destinationSha256": "4d243dd019d906f946c0ea54802fff080a581a4f914610da36d76a48a363668e",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "1db0da71999939236cbd1a60a4980dc74bd16a98",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/StudyGuide.tsx",
+      "sourceSha256": "db53cfee9ea14ed89db58684c74ab9f00b46c9d77321ad638668ee5305258cfe",
+      "destinationSha256": "1361a6d57f7343bfd41a26fbf6057cbddda6b37591a7d9498d361e76f4b0f4aa",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "537c2433afac1ff662647eba8bac8cb59681b90c",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/UnifiedSearch.tsx",
+      "sourceSha256": "7e089299cad48a6ede4b12c806edaf933e5aa732247180044b90d562f4f099e6",
+      "destinationSha256": "7e089299cad48a6ede4b12c806edaf933e5aa732247180044b90d562f4f099e6",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "442c0cbe6c88fc0d857bcdd83b2ef70f21cd1abb",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/examSandbox.css",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/examSandbox.css",
+      "sourceSha256": "b911ccc391505eed8c2bfe651b87d19bc82138f8d1d7b112fee31247099e7cbc",
+      "destinationSha256": "b911ccc391505eed8c2bfe651b87d19bc82138f8d1d7b112fee31247099e7cbc",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "ee07b97404b38767572be297141667b7856a4440",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/flashcardDeck.ts",
+      "sourceSha256": "2b84ee7188d0f4075b20f8cab403e6ccc1c8d9e87678ead61c1bc52ab7082937",
+      "destinationSha256": "2b84ee7188d0f4075b20f8cab403e6ccc1c8d9e87678ead61c1bc52ab7082937",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "66a5f2f4839042a58f12d16fea3e1daa2f9b3c06",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/glossary.ts",
+      "sourceSha256": "389be0d7fd0b75843289203d159a280df1c9321d7a3ece1105e6d7c693b938c5",
+      "destinationSha256": "389be0d7fd0b75843289203d159a280df1c9321d7a3ece1105e6d7c693b938c5",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "be0c32104cab4bc6e5161cb9358a0fd819bbc6c9",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/index.tsx",
+      "sourceSha256": "c470631f10c9b106f0a2bc02443b0c3dd132a514318a2d33d4f4d16e3114bb27",
+      "destinationSha256": "c470631f10c9b106f0a2bc02443b0c3dd132a514318a2d33d4f4d16e3114bb27",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "31818fb8c42069be948c735cc028b7e374ff5826",
+      "sourcePath": "src/ExamPrepHub/exams/ALG1/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ALG1/questions.ts",
+      "sourceSha256": "d1c8f6e033e12afd4398ac6a106922eba1a28f5135fbd457462fdef32cd48f10",
+      "destinationSha256": "0ddc005a179361910779d4de7875a86e72388a9e0fcca2487d1bc971f43e0fa6",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "b99bd2be2352e86932ec5060c43ccb34693c1e84",
+      "sourcePath": "src/ExamPrepHub/exams/ALG2/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG2/Diagnostic.tsx",
+      "sourceSha256": "1ab857250c5138ea98e8633fdb875a765c79e16e4d7c1ffded81fa2fe015b60c",
+      "destinationSha256": "e2018734f2a5dac901a8ab743256960b17479de0a78f3fea83bb8c634ab67b2b",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "3654b60044e2603319dd3f5b4eb743749f1d9d17",
+      "sourcePath": "src/ExamPrepHub/exams/ALG2/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG2/Flashcards.tsx",
+      "sourceSha256": "5b6e22ac71e9248c41683da3b9c2473d8dbc50875cb8be1228876314a3a888f6",
+      "destinationSha256": "5b6e22ac71e9248c41683da3b9c2473d8dbc50875cb8be1228876314a3a888f6",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "75e31f00f9e47dc7b3be2f99a698b78f4a95b2e8",
+      "sourcePath": "src/ExamPrepHub/exams/ALG2/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG2/Practice.tsx",
+      "sourceSha256": "d2f2dc2746aebf6f4a6e14633cdadff6a5dbb0e08df7b79280b5cf27e02d9eda",
+      "destinationSha256": "db721a58276800466dd75678e3cf077cf2d49a9d83aefacd567e1fc77e18c62a",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "eb60edbe3d40acdec300fee8c5bce6aeba7de45e",
+      "sourcePath": "src/ExamPrepHub/exams/ALG2/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG2/StudyGuide.tsx",
+      "sourceSha256": "f38292b01033ba8b4b05d7c0de4548ac4d2ad86e8657616a2d0f86f37256c39a",
+      "destinationSha256": "b771481b77820a5c5197658c620d55606d458ca8af96992f80a5526438fc76c6",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "4241375355112d126fd6e2c1a69990bf5ce6849b",
+      "sourcePath": "src/ExamPrepHub/exams/ALG2/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG2/UnifiedSearch.tsx",
+      "sourceSha256": "bdbda8372eea397f7b54a5fdeaac6cbf5ca7d20289c5648f4a54724c84857a38",
+      "destinationSha256": "bdbda8372eea397f7b54a5fdeaac6cbf5ca7d20289c5648f4a54724c84857a38",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "be59ca5077ec398c329520c0516f99e7eaa1e4d8",
+      "sourcePath": "src/ExamPrepHub/exams/ALG2/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ALG2/flashcardDeck.ts",
+      "sourceSha256": "fb4344a97a4d4ec7178f510433117d887179500be8af6c9008d2307f2dcb5bfb",
+      "destinationSha256": "fb4344a97a4d4ec7178f510433117d887179500be8af6c9008d2307f2dcb5bfb",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "84e807aaed5d42792ee7a24e97bdd6381fe11b99",
+      "sourcePath": "src/ExamPrepHub/exams/ALG2/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ALG2/glossary.ts",
+      "sourceSha256": "abbc4b42e388f14879780e0de4c6aadb1b20cb9c338ea020e9bff01f475b6770",
+      "destinationSha256": "abbc4b42e388f14879780e0de4c6aadb1b20cb9c338ea020e9bff01f475b6770",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "0b29a178c8d267bb93fafc2dd808b98f9fc05e0a",
+      "sourcePath": "src/ExamPrepHub/exams/ALG2/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ALG2/index.tsx",
+      "sourceSha256": "9cccb6d5d968e035b6350b4af2991ad162adf965e02e5d9b411b37af5aebd983",
+      "destinationSha256": "9cccb6d5d968e035b6350b4af2991ad162adf965e02e5d9b411b37af5aebd983",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6a5f6117edde6a09c1de79859844709226f47799",
+      "sourcePath": "src/ExamPrepHub/exams/ALG2/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ALG2/questions.ts",
+      "sourceSha256": "954a59d7186dacd49638353ec91d419b9390ed011eae32e4b46c550d4208c589",
+      "destinationSha256": "97fff1722271b4079b8dff9c16a532de66ec9e8e6f4659d99c6af53d842ec25c",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "25d6cba396c9dc6edcad0dcf090789e720e53be3",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/Diagnostic.tsx",
+      "sourceSha256": "15fb189821485f182f36be26c5d4a9bbe7ce38abc62882b38a9f322c62907e01",
+      "destinationSha256": "79b2d74c214e35b00bd7c75c4be4db8f429aeefd3401e729448d509e3b4b1aa8",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "81d0a1100bbad3091b53ec0f265f00109a27b533",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/ExamSandbox.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/ExamSandbox.tsx",
+      "sourceSha256": "6bc139d2de4dbf8a87cec0c7becd90bdcdf4f4850bffd7a19ee2b7ea43943f71",
+      "destinationSha256": "a132d0e50d539a1191accca95448c8b335c95545b7e15a71f2963016bab4c7c8",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "7bcc4e3497b9e7bae6c82dc75056149f57425e46",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/Flashcards.tsx",
+      "sourceSha256": "4a499f9b537dd1095c51effb2cacee1dce0834bf8d2b71ccfc0f05a06a018ba6",
+      "destinationSha256": "4a499f9b537dd1095c51effb2cacee1dce0834bf8d2b71ccfc0f05a06a018ba6",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "1d2dc8b3a13c61fc5faaccc9184b1ed23e534341",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/Practice.tsx",
+      "sourceSha256": "e773659fc4121a5ff45307b7637aeacac278c2bd80573eb662f74cf46ea1e830",
+      "destinationSha256": "9a6658a5521cabaefa2007b6b065cfc1250eed32aa87e61c068613223130afdb",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6152efab5dd004bb95bf8df2ce91ddf1b1d28fbf",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/StudyGuide.tsx",
+      "sourceSha256": "0aff329c75e9016289a051bc2200f3a865a7c30ca99ba8e3f9107f7cab76ae88",
+      "destinationSha256": "908f7741991225df3751b44d569ac90ead04baa09d86cee52a3bab9fdcc40e74",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "e22744d4ca4c78100a209c2d208ab08743cef46f",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/UnifiedSearch.tsx",
+      "sourceSha256": "72a0bc250d90ac5be982814fa03250398fb48900a367c3e3a0318fa93d6c5ff4",
+      "destinationSha256": "72a0bc250d90ac5be982814fa03250398fb48900a367c3e3a0318fa93d6c5ff4",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "442c0cbe6c88fc0d857bcdd83b2ef70f21cd1abb",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/examSandbox.css",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/examSandbox.css",
+      "sourceSha256": "b911ccc391505eed8c2bfe651b87d19bc82138f8d1d7b112fee31247099e7cbc",
+      "destinationSha256": "b911ccc391505eed8c2bfe651b87d19bc82138f8d1d7b112fee31247099e7cbc",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "0759a26e66bfc5e20154a1dca27914cb062bc4ac",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/flashcardDeck.ts",
+      "sourceSha256": "f936e0c8e201a381cc4865cfcbef1ce9c2ba19bd5732e33ce53995350e3bcc9b",
+      "destinationSha256": "f936e0c8e201a381cc4865cfcbef1ce9c2ba19bd5732e33ce53995350e3bcc9b",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "0572229c728fe3c9b515b8b68f4b31571c2af6ad",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/glossary.ts",
+      "sourceSha256": "3ac3d796eead4a9cb519bb6e9895aa0886f765ac9bcd09fd259e56e7bfad463a",
+      "destinationSha256": "3ac3d796eead4a9cb519bb6e9895aa0886f765ac9bcd09fd259e56e7bfad463a",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "b0ff868cdb665a6e07c6a16a90012aae153cd522",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/index.tsx",
+      "sourceSha256": "d3fa225b718511c9828892ff2b714e29bebc69c00168e3e7ca96584e0b315aeb",
+      "destinationSha256": "d3fa225b718511c9828892ff2b714e29bebc69c00168e3e7ca96584e0b315aeb",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6ab3dcf60317ecea06f66e305f6c1b1550541020",
+      "sourcePath": "src/ExamPrepHub/exams/BIO1/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/BIO1/questions.ts",
+      "sourceSha256": "b1ac804d4960676bebc80ff2a2acb3956ececd571acb6a429cf311cf48de822c",
+      "destinationSha256": "63a4353c6e921d073db9c69d227bf8bd0e4889243e61868b4fe7fdd49b88da4f",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "8de46e529f6f9b6f24b279dd333238d1af9981f2",
+      "sourcePath": "src/ExamPrepHub/exams/CHEM/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/CHEM/Diagnostic.tsx",
+      "sourceSha256": "d8903c67f9ce1f194627b5e95197a1093ac3b94d6265b2546c6aee94a42d05f8",
+      "destinationSha256": "6782fc620f532d3e13be124736960b76de7560c138fed4616e562887485e04f1",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "026126f48a13402894c88897b9eeb5d1cb517658",
+      "sourcePath": "src/ExamPrepHub/exams/CHEM/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/CHEM/Flashcards.tsx",
+      "sourceSha256": "cd49efe1ad6ce4e43fcab691335a731ad8d56624a28c5b764b49e2cf7e3b80ad",
+      "destinationSha256": "cd49efe1ad6ce4e43fcab691335a731ad8d56624a28c5b764b49e2cf7e3b80ad",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "3d2e40e2e9ef02596d61932ce6da2d173eb3cefa",
+      "sourcePath": "src/ExamPrepHub/exams/CHEM/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/CHEM/Practice.tsx",
+      "sourceSha256": "a91f8c5ba49da110d64515b1ed67cdf95db3284e650a1c3823980116c5280c30",
+      "destinationSha256": "54624ecf3e28b7ed7b5606b481b7f2785ec7a99d8d4aeda70946a3576d99a5f8",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "20279f19193a2c2caa771cdbe3eef33fb5de6129",
+      "sourcePath": "src/ExamPrepHub/exams/CHEM/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/CHEM/StudyGuide.tsx",
+      "sourceSha256": "b41b7a50a8fcd7aaf6fb1e70bfa06715fa70138a5a6639e89ef567a3d164ff03",
+      "destinationSha256": "6f7f2df1a8febf70a783728b609dc4a770352dd4ace6042358998b3f3d5be095",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "25457d6c88778f7fb71db3f5d109735bc6676833",
+      "sourcePath": "src/ExamPrepHub/exams/CHEM/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/CHEM/UnifiedSearch.tsx",
+      "sourceSha256": "4654586f7ae80768d84300f89d1409bd7da886f96704fd5f199c3596a0fa8de4",
+      "destinationSha256": "4654586f7ae80768d84300f89d1409bd7da886f96704fd5f199c3596a0fa8de4",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "a5b52cc21d7ff3fa1791733f2d7a7473943ddf60",
+      "sourcePath": "src/ExamPrepHub/exams/CHEM/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/CHEM/flashcardDeck.ts",
+      "sourceSha256": "9b5c19d55cdc56b4d27ac53d14429569983af463ac6e643fb07e2f02541fa910",
+      "destinationSha256": "9b5c19d55cdc56b4d27ac53d14429569983af463ac6e643fb07e2f02541fa910",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "d2ce7d584fb72dee18e383ce3ee3d20fe3d779f2",
+      "sourcePath": "src/ExamPrepHub/exams/CHEM/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/CHEM/glossary.ts",
+      "sourceSha256": "beae0316fc2231290aafb239172444a4bc7eb21b8efff4ace7ab5674a6b30718",
+      "destinationSha256": "beae0316fc2231290aafb239172444a4bc7eb21b8efff4ace7ab5674a6b30718",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "c400187582c8bfab68365f235a258651098e6e77",
+      "sourcePath": "src/ExamPrepHub/exams/CHEM/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/CHEM/index.tsx",
+      "sourceSha256": "77c5b24e5c64c1cfc0d13504d75071d9aeaed9d4ad22deb9c0850e7613b110d6",
+      "destinationSha256": "77c5b24e5c64c1cfc0d13504d75071d9aeaed9d4ad22deb9c0850e7613b110d6",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f0d774a9de5f12959d2ffd6b8051e954708ca31c",
+      "sourcePath": "src/ExamPrepHub/exams/CHEM/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/CHEM/questions.ts",
+      "sourceSha256": "866e34ddf15f36a7e260f5b413160d1f351d1e6bb2d0eb51cc6b91117be78499",
+      "destinationSha256": "8eebadf9fc51d9f0454e121b96e34b0567146f24ad63e94d2faa73f1a83a6c17",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "be6c4f86b969aebc0b4984a4f8c6b8aa44355290",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/Diagnostic.tsx",
+      "sourceSha256": "08fc976d4f64a206258a67c0eb6b369452998e0ce88b97fea1581cac49894253",
+      "destinationSha256": "6ab875a9c01d41e3f5d9acf1dbafee429f0c363b34ee764a3edb7df92ee2d740",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "3cb141a622a260819cfbd6558f25ac4488ad6384",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/ExamSandbox.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/ExamSandbox.tsx",
+      "sourceSha256": "3f0b23ed4c11b6489eb49dbd6d86e6994432412c3e8d963d47223c7bfc125f0c",
+      "destinationSha256": "4a9bdb5c27df4d1c45d752cb1c71a4e36fc2e089dccbea17d3df40c9a837c38f",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "71fd57fba17e8df1656a27d28631f6a0a765df8c",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/Flashcards.tsx",
+      "sourceSha256": "73e98fdb1a1dcfed04238b1dfb3c31859f3e8488b13bdec9727d8de1abba5208",
+      "destinationSha256": "73e98fdb1a1dcfed04238b1dfb3c31859f3e8488b13bdec9727d8de1abba5208",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "9b2290db53ef816aadf2be358a5a38f3fbab3c90",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/Practice.tsx",
+      "sourceSha256": "9b10751192c049b7a1f4b1da5a515ce3de24e3b47f271e01441761d4ba1a7dca",
+      "destinationSha256": "f8cc39e9d9f3570e30b4bee663ec88f323418bbb6ae7c205ce54ca76fc196861",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "75651e09c8044a5beba7b2dd5e622f744f4ada3a",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/StudyGuide.tsx",
+      "sourceSha256": "3fd384c47ea17417ee38c9ea3ae0037c247dec66ff9d8356524303e553370b0e",
+      "destinationSha256": "b75afe5e7bd0fe7b7c5c3a093e7e38c2178cd018bb9c178ca25988cb75e941f5",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f0c30cebd380fa1b3e80a5ff20b67fde5f4d6689",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/UnifiedSearch.tsx",
+      "sourceSha256": "1ec3e000ba561c04a4c557f1d58aad4b7445a4ec97f6c5a0de7ee529d0b11827",
+      "destinationSha256": "1ec3e000ba561c04a4c557f1d58aad4b7445a4ec97f6c5a0de7ee529d0b11827",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "442c0cbe6c88fc0d857bcdd83b2ef70f21cd1abb",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/examSandbox.css",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/examSandbox.css",
+      "sourceSha256": "b911ccc391505eed8c2bfe651b87d19bc82138f8d1d7b112fee31247099e7cbc",
+      "destinationSha256": "b911ccc391505eed8c2bfe651b87d19bc82138f8d1d7b112fee31247099e7cbc",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "9fac3f4c67c908f6e560f18de0af9d08fc451cf4",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/flashcardDeck.ts",
+      "sourceSha256": "2b277de6fd43c1479b806dc27cfd2ac6ee60a98152c4ed8c69fdfb31f022d2fb",
+      "destinationSha256": "2b277de6fd43c1479b806dc27cfd2ac6ee60a98152c4ed8c69fdfb31f022d2fb",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "166800f8f6560a3691b2187d9f2cd798ac678907",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/glossary.ts",
+      "sourceSha256": "e9d91ff2df38ca9faba9fdfa51d1a504972558fd6060d52d25a0a46ab4b79ca5",
+      "destinationSha256": "e9d91ff2df38ca9faba9fdfa51d1a504972558fd6060d52d25a0a46ab4b79ca5",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "9bdd9705a8e0349774cbcabd7894d111244da524",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/index.tsx",
+      "sourceSha256": "70790182e7ab782185a8135e3bc2d1ac2446cf4d575e8b515e3976b6790515b2",
+      "destinationSha256": "70790182e7ab782185a8135e3bc2d1ac2446cf4d575e8b515e3976b6790515b2",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "c1463b60d4da65f5b4e267d039fbf1b4111b9f92",
+      "sourcePath": "src/ExamPrepHub/exams/ENG2/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ENG2/questions.ts",
+      "sourceSha256": "17d8ca79ebb232f783f54b7db02c942f524676b197f8fced1f0d893058b91de8",
+      "destinationSha256": "27b064ca2407e5a5cde6212a69c1e9e4ca20e5a23379016d6e12dbe54eec40d0",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "ed57e660d7e4ba87005bacb8c3b7b9412fae01f0",
+      "sourcePath": "src/ExamPrepHub/exams/ENG3/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG3/Diagnostic.tsx",
+      "sourceSha256": "41148e7cf58c26590697ec0a5db52e313f64025a97ed730c228e6fa223710e87",
+      "destinationSha256": "a211de909f6541579efa9d6465b37e0dc960aa9382e75dfa044e16e7994d2988",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "e620557cb67fc82d005ad56d8bcce0df426593e5",
+      "sourcePath": "src/ExamPrepHub/exams/ENG3/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG3/Flashcards.tsx",
+      "sourceSha256": "8b0b20d7d62ecf8918e991fd0a471906d2155d540ea402129fcc1b2b0f189ece",
+      "destinationSha256": "8b0b20d7d62ecf8918e991fd0a471906d2155d540ea402129fcc1b2b0f189ece",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "c28cc8b30c1ee45914e071048ec41c3964bdda15",
+      "sourcePath": "src/ExamPrepHub/exams/ENG3/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG3/Practice.tsx",
+      "sourceSha256": "61103912f69ccb43c652a1a2d5acd40bbbe6f522fe7bc9f96f3cf6e8c5573a78",
+      "destinationSha256": "8c7b48f18a165a1495f459597fa326f97abde99d1b1a3f6ef2a6eb0afd362c45",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "59b124d3914e731801b08ce137b95be5a8a6b478",
+      "sourcePath": "src/ExamPrepHub/exams/ENG3/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG3/StudyGuide.tsx",
+      "sourceSha256": "5c7e24227acd1a80ccf7f9118584c2cee3bdd007274eb252aa1cc75a7f1a1ee3",
+      "destinationSha256": "8dbeb3fd3d1516ae8f993285d7f658ba15e37bf0e00837761dd8bc1093093540",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "828ebc8ad44e7240ab21be4ff2086f6fd3d3ca89",
+      "sourcePath": "src/ExamPrepHub/exams/ENG3/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG3/UnifiedSearch.tsx",
+      "sourceSha256": "ebf0715080945c22b252607ef5d0f2591d633d8cd58bcee0b5a5255bf0eb2d03",
+      "destinationSha256": "ebf0715080945c22b252607ef5d0f2591d633d8cd58bcee0b5a5255bf0eb2d03",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6d16c76fd1ae021c6859e87a7415f746445128a2",
+      "sourcePath": "src/ExamPrepHub/exams/ENG3/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ENG3/flashcardDeck.ts",
+      "sourceSha256": "55c2abf5b82d4178e6c927565d3ef0f68e2d2499fd9812d9f0f51aafebf94436",
+      "destinationSha256": "55c2abf5b82d4178e6c927565d3ef0f68e2d2499fd9812d9f0f51aafebf94436",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "dfdcf9d6bccbe20d3de0079ae063b8909bfc3bbf",
+      "sourcePath": "src/ExamPrepHub/exams/ENG3/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ENG3/glossary.ts",
+      "sourceSha256": "75f55b1514bf11a63b8edd9e5daee015553a5a37c360d7d44cb485f21bc2ff55",
+      "destinationSha256": "75f55b1514bf11a63b8edd9e5daee015553a5a37c360d7d44cb485f21bc2ff55",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "48f8ad12cf0c713aeac99a18436639020185186f",
+      "sourcePath": "src/ExamPrepHub/exams/ENG3/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENG3/index.tsx",
+      "sourceSha256": "faccd51ed82c10b96cd329684f5726aab3387cc0ae2d877498e587533cb22b7a",
+      "destinationSha256": "faccd51ed82c10b96cd329684f5726aab3387cc0ae2d877498e587533cb22b7a",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "084f314ce3a51e6bfcd37dd81bdb573e3c697724",
+      "sourcePath": "src/ExamPrepHub/exams/ENG3/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ENG3/questions.ts",
+      "sourceSha256": "a2eb8cc221eaa426cf0f195e8ff9130c1162a00319f7e1a6cd2afec1339f3e92",
+      "destinationSha256": "4c4dc7e750631fee2767ad446ebf23cd45e64fd496c0c0d949a9c28c671e3bdb",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "4caf03fdbe8b3db5440c1d015aff3b0e2eeb1d48",
+      "sourcePath": "src/ExamPrepHub/exams/ENVSCI/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENVSCI/Diagnostic.tsx",
+      "sourceSha256": "6828a5cf67827fa205574fec777065c999525606935c6c8158da7cb8d7c60a7a",
+      "destinationSha256": "7ad22f2fe7f46dd1ca807d60bab350a7a8c786af93b5e9532c8044dbb2a7011a",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "e3c0990e140cdc2f8b7a7655844b8dfc2de11ed5",
+      "sourcePath": "src/ExamPrepHub/exams/ENVSCI/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENVSCI/Flashcards.tsx",
+      "sourceSha256": "9c466e2744656880bf39e1d992fead54dcbbd6691bf9160ec7feee57a46b7965",
+      "destinationSha256": "9c466e2744656880bf39e1d992fead54dcbbd6691bf9160ec7feee57a46b7965",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "98eaf87996508747c42700a2f08cc4462952f2cd",
+      "sourcePath": "src/ExamPrepHub/exams/ENVSCI/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENVSCI/Practice.tsx",
+      "sourceSha256": "8723c4dfd4b4f3b960138f492498e9cdcf36e94f261374f231e63f853a4c8017",
+      "destinationSha256": "4bcf665d2e0a77df1bda335a313468f8548344add9344cfdeb05c22caf07ba10",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "2b8b5dee5c39e1eb3e7b48a1886007d63f58bfed",
+      "sourcePath": "src/ExamPrepHub/exams/ENVSCI/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENVSCI/StudyGuide.tsx",
+      "sourceSha256": "3103faec75870d34c36eebec9bde6fba20e76c699195133f6b77ee273412cf2d",
+      "destinationSha256": "85e0f7a231727f84154ebc85ec831edf2bb2c4302aa0536b56653aea5b98db21",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "e56238a565f94d7982fe7b002ad020c28f346d9c",
+      "sourcePath": "src/ExamPrepHub/exams/ENVSCI/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENVSCI/UnifiedSearch.tsx",
+      "sourceSha256": "67804b7045afe8646781ec6cf643b18fe508e3a2008d8764a43ad041388f1e45",
+      "destinationSha256": "67804b7045afe8646781ec6cf643b18fe508e3a2008d8764a43ad041388f1e45",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "7583f64ff58025d1cc5ca45539faf98a2418c95a",
+      "sourcePath": "src/ExamPrepHub/exams/ENVSCI/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ENVSCI/flashcardDeck.ts",
+      "sourceSha256": "245c41a49d2af9261507558d174ea5ea4086c88fb2d2f3702497909a58d84824",
+      "destinationSha256": "245c41a49d2af9261507558d174ea5ea4086c88fb2d2f3702497909a58d84824",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "2553a61554a82ebffe5b1a7232aa002fd8b64ed5",
+      "sourcePath": "src/ExamPrepHub/exams/ENVSCI/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ENVSCI/glossary.ts",
+      "sourceSha256": "8ce34df66bc4588aee5f098cc26f3cdba47a0c38b960f95a9679392531e6c835",
+      "destinationSha256": "8ce34df66bc4588aee5f098cc26f3cdba47a0c38b960f95a9679392531e6c835",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "e2e1d73418b189eae8afe13a096ab7fb6f623a3a",
+      "sourcePath": "src/ExamPrepHub/exams/ENVSCI/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/ENVSCI/index.tsx",
+      "sourceSha256": "97339edb4b4d6bde30ceb8c4fc53582b8aad53a84bd85931d86bae8a224d81d4",
+      "destinationSha256": "97339edb4b4d6bde30ceb8c4fc53582b8aad53a84bd85931d86bae8a224d81d4",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "d634ed8891f3ff4c1aadeb72cb0d9aa2b74ac162",
+      "sourcePath": "src/ExamPrepHub/exams/ENVSCI/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/ENVSCI/questions.ts",
+      "sourceSha256": "dd95bec8e106e07d7860a5d193ab721af75ad4a7f4c68261f74bc44bd537457e",
+      "destinationSha256": "fbab6c1828422eb446aa189d8fe6ba9cb4d12a907b76a617fcccdfa90d53ff9d",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "11b73add3c4b26d4db8f15f1dad44f1e20083011",
+      "sourcePath": "src/ExamPrepHub/exams/PFIN/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PFIN/Diagnostic.tsx",
+      "sourceSha256": "6e99bcef3835f25c1223ebfeca82d93c57cce08d4b9ff010fe6c5aa1fe827082",
+      "destinationSha256": "93810417995a7b64ccec2ad977baa42a40370b5101d71b0a5cb8bd60fd5e44f1",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "db88da6c08b90686b1ed658acf610ed647af6e62",
+      "sourcePath": "src/ExamPrepHub/exams/PFIN/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PFIN/Flashcards.tsx",
+      "sourceSha256": "32adc3ed182de93be53361010e1ca80f1c54f98a9162675faa54c463577d7041",
+      "destinationSha256": "32adc3ed182de93be53361010e1ca80f1c54f98a9162675faa54c463577d7041",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "0b024bbda44c499f33a84b383ac6ce92b063a507",
+      "sourcePath": "src/ExamPrepHub/exams/PFIN/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PFIN/Practice.tsx",
+      "sourceSha256": "96c3c26cca6c0dc2ebb0ad5ec00bec336266e1450a02b1f44a4d08dfdeba5d02",
+      "destinationSha256": "58455a9d02d7458b415fe39ba977912e99f394e589687a133704d0dda8e92332",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "ec2bdcd3f13c5aaac06781221e6e8488fc5f1df5",
+      "sourcePath": "src/ExamPrepHub/exams/PFIN/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PFIN/StudyGuide.tsx",
+      "sourceSha256": "61c2115f882f5e33d2b9e7a052779f116791559430855153ad2c22c860f4bdde",
+      "destinationSha256": "24bbe2c1deeed189ae5eb2fbc1bb051151b7b356b4059b2dae700171a0e26c79",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "ef419ba7f7d61cdb48ddb54fe7f01aaf6511947d",
+      "sourcePath": "src/ExamPrepHub/exams/PFIN/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PFIN/UnifiedSearch.tsx",
+      "sourceSha256": "5b02e952af25d9d73c6ba9a7b1c5d45e68ad6a00e152124425c61ec7ce232b99",
+      "destinationSha256": "5b02e952af25d9d73c6ba9a7b1c5d45e68ad6a00e152124425c61ec7ce232b99",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "fb25b27de3ccbbcfa636524e6647462e2c4396bc",
+      "sourcePath": "src/ExamPrepHub/exams/PFIN/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PFIN/flashcardDeck.ts",
+      "sourceSha256": "89a376ef5e09604236513ab9187b2190925bf080e628d67da0a9c323f2a09d59",
+      "destinationSha256": "89a376ef5e09604236513ab9187b2190925bf080e628d67da0a9c323f2a09d59",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "5536b985bb883d83a365aa04b62bdceb0821c807",
+      "sourcePath": "src/ExamPrepHub/exams/PFIN/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PFIN/glossary.ts",
+      "sourceSha256": "0b11cdc02a32e15e3901caa9cd072cbb4abded9146663d195c69602fa0f926c6",
+      "destinationSha256": "0b11cdc02a32e15e3901caa9cd072cbb4abded9146663d195c69602fa0f926c6",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "2fc7cf78add6891c5a72a2a6240ef8b4eed84d80",
+      "sourcePath": "src/ExamPrepHub/exams/PFIN/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PFIN/index.tsx",
+      "sourceSha256": "9ed08967278effad53c0a1a6eace0cb758d845748b4bd91a33f7a6c6dbcc78b6",
+      "destinationSha256": "9ed08967278effad53c0a1a6eace0cb758d845748b4bd91a33f7a6c6dbcc78b6",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "b3ea325ec420387b5755cbc3cdc247e006977a02",
+      "sourcePath": "src/ExamPrepHub/exams/PFIN/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PFIN/questions.ts",
+      "sourceSha256": "54c9055b038ec2584405c7cd17f14e4cc9491269ca7fb0305d522b084c5ddaab",
+      "destinationSha256": "4f8a9828a26a057f0e1d5bdd4d7b19b4d58caa6bd151f37036ac53e28552e4c1",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "5975374dd9d31c1d99d624f225a0714afdde4186",
+      "sourcePath": "src/ExamPrepHub/exams/PHYS/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PHYS/Diagnostic.tsx",
+      "sourceSha256": "72bb5b952740f8f0ff5ad70d99adef81f1ab6df5eba8eca4f3093be163329f46",
+      "destinationSha256": "f3e43324312fd367808d26c9614d87d625c035218556fc153696b893b489c83e",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "69bb2de0aaabdcad0ef031088ae62144d8c6b910",
+      "sourcePath": "src/ExamPrepHub/exams/PHYS/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PHYS/Flashcards.tsx",
+      "sourceSha256": "ab5555d3bf7d9540c3e7cab025e94c429399930e59dd05823d49e9e7cc85d963",
+      "destinationSha256": "ab5555d3bf7d9540c3e7cab025e94c429399930e59dd05823d49e9e7cc85d963",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6c1836529133a76cc0db183554fba053388c10b7",
+      "sourcePath": "src/ExamPrepHub/exams/PHYS/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PHYS/Practice.tsx",
+      "sourceSha256": "ec02c2c21e9b958f4133926c202f18cdf82ae6f2848761ad67016d5eb9ec46e6",
+      "destinationSha256": "d3fa7e19a5a78f5ce79f18ab9ee34c90a94bd659afe90049d480b362f8230bb7",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "5ed5c2a9784089b3ca22b6526c07083cdc9da7b5",
+      "sourcePath": "src/ExamPrepHub/exams/PHYS/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PHYS/StudyGuide.tsx",
+      "sourceSha256": "5ee571a1ba4bf91e64684c2189c59a06e00ee64d8949a5b5a2d9feff70c1c65b",
+      "destinationSha256": "daecc7eb953732ed5edd3e07dd6290522f4322451c043999d073b56048e949e2",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "55b6ed6ed9fe7f6af98c4cb9a109399b1c10c550",
+      "sourcePath": "src/ExamPrepHub/exams/PHYS/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PHYS/UnifiedSearch.tsx",
+      "sourceSha256": "536f6ee5f8c8bee74ebc9964b8b701a5d819973104a793089ce297e830eea845",
+      "destinationSha256": "536f6ee5f8c8bee74ebc9964b8b701a5d819973104a793089ce297e830eea845",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6d55823793c3d4f9fdda71d6b0c94b9aec41a9eb",
+      "sourcePath": "src/ExamPrepHub/exams/PHYS/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PHYS/flashcardDeck.ts",
+      "sourceSha256": "71ea352676fade1296806696d8db7a67fdd72633ef26ad6200465dafc1381a7b",
+      "destinationSha256": "71ea352676fade1296806696d8db7a67fdd72633ef26ad6200465dafc1381a7b",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "23b71d1cc13c1a664b8711376c5c0129ba6fb2e6",
+      "sourcePath": "src/ExamPrepHub/exams/PHYS/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PHYS/glossary.ts",
+      "sourceSha256": "32bb6bad1e11a0315f80328f33afe00328f6e924e5138d7b6a1380be7a9f7fde",
+      "destinationSha256": "32bb6bad1e11a0315f80328f33afe00328f6e924e5138d7b6a1380be7a9f7fde",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "8a182c4342ce1fc5cd9e1068cdbb86c27036d9f6",
+      "sourcePath": "src/ExamPrepHub/exams/PHYS/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PHYS/index.tsx",
+      "sourceSha256": "2f3eac34e707125f073cddd5b4051e5c97594d2e138dd8bcbdb0c17d22e2fb5a",
+      "destinationSha256": "2f3eac34e707125f073cddd5b4051e5c97594d2e138dd8bcbdb0c17d22e2fb5a",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "9724bec4bce678c7e97708c02eb0bb3aeaeda8b5",
+      "sourcePath": "src/ExamPrepHub/exams/PHYS/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PHYS/questions.ts",
+      "sourceSha256": "5e700c11ee394719e203fb6ddd2819656e205d9ffd7b0715be42391773f98375",
+      "destinationSha256": "5e700c11ee394719e203fb6ddd2819656e205d9ffd7b0715be42391773f98375",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "73eef181b7fadf7fbc137280aefd22b2bb3b27f3",
+      "sourcePath": "src/ExamPrepHub/exams/PRECALC/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PRECALC/Diagnostic.tsx",
+      "sourceSha256": "ff3d121f58935c35f74c6cadf615b9d75615787a7c197ac44f78766c88a67ccd",
+      "destinationSha256": "da11f1cd46a6b67d5a2ca94f6d5cf760648adcacbd0997b6436c1d3d9e1de1ff",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "47ced885e7212663c7e7e3d230250122b56f865a",
+      "sourcePath": "src/ExamPrepHub/exams/PRECALC/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PRECALC/Flashcards.tsx",
+      "sourceSha256": "867f52bd801b88d57c50db918f6fc66ab54a5d420fd9a0721c5e937f36029689",
+      "destinationSha256": "867f52bd801b88d57c50db918f6fc66ab54a5d420fd9a0721c5e937f36029689",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "778819bf39c49831d0da7e0e4e924cba49ddd803",
+      "sourcePath": "src/ExamPrepHub/exams/PRECALC/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PRECALC/Practice.tsx",
+      "sourceSha256": "4a4f45bff338523c2e0ae8a39837e331f577d047856b5625c3b80537c27337db",
+      "destinationSha256": "4c92b8e9ceb500603e38576d6fff6288e64a5bd93cc1126be5be148588812c78",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "809014bb12001823d38df0b045909f216b739032",
+      "sourcePath": "src/ExamPrepHub/exams/PRECALC/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PRECALC/StudyGuide.tsx",
+      "sourceSha256": "4fbddb5a7910cdbd8b85b73c57d3b463e195a5b141652506186fb520d698aac0",
+      "destinationSha256": "cbfbec9550df6cb6960ac13b35ea56f7928677d929d9db75f8f4d282e421cde9",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "0f31a452ece1c95aadc3821db01f22004c3c385f",
+      "sourcePath": "src/ExamPrepHub/exams/PRECALC/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PRECALC/UnifiedSearch.tsx",
+      "sourceSha256": "affc739fc0f595ba9fed58b2aba12664e7007c9ba32b7c4472ca2233a7666d1a",
+      "destinationSha256": "affc739fc0f595ba9fed58b2aba12664e7007c9ba32b7c4472ca2233a7666d1a",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "001f2f34e20e02263e710e367e90e81a94312448",
+      "sourcePath": "src/ExamPrepHub/exams/PRECALC/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PRECALC/flashcardDeck.ts",
+      "sourceSha256": "6677bbe3d964266a570394b5b72389f3f3ac6fb22015eaa87e70cb8671163d18",
+      "destinationSha256": "6677bbe3d964266a570394b5b72389f3f3ac6fb22015eaa87e70cb8671163d18",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "17e08e1085a9c6ef85456788dcc56b6bc27d01b6",
+      "sourcePath": "src/ExamPrepHub/exams/PRECALC/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PRECALC/glossary.ts",
+      "sourceSha256": "3f356c018acfbb38370f24ae1911cbd432cf740802d644c7776c51e8f779e5dd",
+      "destinationSha256": "3f356c018acfbb38370f24ae1911cbd432cf740802d644c7776c51e8f779e5dd",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f5ad52044e3f3773858243f223f89c3f8cfaa84a",
+      "sourcePath": "src/ExamPrepHub/exams/PRECALC/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PRECALC/index.tsx",
+      "sourceSha256": "5443dbe7a1f07cc9fb76955e2adbe5e97f7efefd91cf99b9666c5bb339cab4cc",
+      "destinationSha256": "5443dbe7a1f07cc9fb76955e2adbe5e97f7efefd91cf99b9666c5bb339cab4cc",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "a454cf740cf3a8923df2e559218445b1d6f06523",
+      "sourcePath": "src/ExamPrepHub/exams/PRECALC/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PRECALC/questions.ts",
+      "sourceSha256": "b6654cfca72dfbe7053b02ee96ad1db86d86ba3179f1cb594732bb1bd59ef10b",
+      "destinationSha256": "b6654cfca72dfbe7053b02ee96ad1db86d86ba3179f1cb594732bb1bd59ef10b",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6c0b54757ce7ddf44bf6f8471611a9c727aebed8",
+      "sourcePath": "src/ExamPrepHub/exams/PROBSTAT/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PROBSTAT/Diagnostic.tsx",
+      "sourceSha256": "07836549045036c2501816fb87dd25fbd925a1f41865fc4f8f80549d29ea2dda",
+      "destinationSha256": "179dda7a4b7c3f653e2f92b3ee0cdfe4a9f741c6ab9acff38f0864ef67e6a5f8",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "00cecec31ed5c9a75d883357685bb3f0387d9aab",
+      "sourcePath": "src/ExamPrepHub/exams/PROBSTAT/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PROBSTAT/Flashcards.tsx",
+      "sourceSha256": "b127169c5555bde7f9a862543319516134a342f70f9ed494086cd75a14ff84f7",
+      "destinationSha256": "b127169c5555bde7f9a862543319516134a342f70f9ed494086cd75a14ff84f7",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "069e0c7df945c1b9c36b199da64d9356edfeaf1f",
+      "sourcePath": "src/ExamPrepHub/exams/PROBSTAT/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PROBSTAT/Practice.tsx",
+      "sourceSha256": "774f215f7ca83e0f9cf94204508c1dae93425ccced62bf13954058bdc704ebe3",
+      "destinationSha256": "709ed827c68e342381edd91ff04c3ccb1afd954e67f43f7b593dc94f77b6d850",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "43febb0c07f8d17b435b61d38d5d548213d725b6",
+      "sourcePath": "src/ExamPrepHub/exams/PROBSTAT/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PROBSTAT/StudyGuide.tsx",
+      "sourceSha256": "31edce4c4222f12ae18cfc1c8cdc4e9c66cb8655336fe289048d2cbc5248ccf9",
+      "destinationSha256": "bf7f67a564de2e96289e8f5ab355d570bdb42e061e7ed6d60e2570e453256694",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "266b161559fbd7ed8149d9a270d4b4a6fbe85d2d",
+      "sourcePath": "src/ExamPrepHub/exams/PROBSTAT/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PROBSTAT/UnifiedSearch.tsx",
+      "sourceSha256": "fd666f65a1ecb0781eb69196d768132a64cd649a7f79845b71f9fa56a5147b29",
+      "destinationSha256": "fd666f65a1ecb0781eb69196d768132a64cd649a7f79845b71f9fa56a5147b29",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f27a8be051d2d0887f773fe6051fa91163a59f09",
+      "sourcePath": "src/ExamPrepHub/exams/PROBSTAT/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PROBSTAT/flashcardDeck.ts",
+      "sourceSha256": "492a5b79b223183abeb4113c94248617b4e9752a8952cafd0d712bc25f8d71b5",
+      "destinationSha256": "492a5b79b223183abeb4113c94248617b4e9752a8952cafd0d712bc25f8d71b5",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "ead83e6bf9b7d401c7f5d5650350891a9ba25f52",
+      "sourcePath": "src/ExamPrepHub/exams/PROBSTAT/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PROBSTAT/glossary.ts",
+      "sourceSha256": "e99b0c08e826a0e3f6fb939eb62eb9feb558a90311e56d42d698de7a7beb2705",
+      "destinationSha256": "e99b0c08e826a0e3f6fb939eb62eb9feb558a90311e56d42d698de7a7beb2705",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "d4d12c86ef58210cd878c1dfbb3439052e51aa0c",
+      "sourcePath": "src/ExamPrepHub/exams/PROBSTAT/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/PROBSTAT/index.tsx",
+      "sourceSha256": "d94de8999dfb0d0b4f6efa496eb146b12b4890f5847dfebabe8fdd67c5fa133e",
+      "destinationSha256": "d94de8999dfb0d0b4f6efa496eb146b12b4890f5847dfebabe8fdd67c5fa133e",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "effef7f8528b9ea27a2db11cd0920cc974826ce6",
+      "sourcePath": "src/ExamPrepHub/exams/PROBSTAT/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/PROBSTAT/questions.ts",
+      "sourceSha256": "cea43ee092f7b849e2bee32d54ee16ec61f3d0b62fe2f585f9e7ca350fe61028",
+      "destinationSha256": "cddd20835c9b3edefded6d7e0604c0ef912d6fbec51a08e8a46d89c3bbf5c81b",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "0d8e2787c51702ee86b0f8be60b529f342fb246d",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/AdaptiveTest.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/AdaptiveTest.tsx",
+      "sourceSha256": "6a9501b82e863b8c2566e2c9617afe3ff0f272fe48e9783ed7185165ff51fe60",
+      "destinationSha256": "f806f63cbc623041e7172f31f1da1501241515ea6761f5235bb7e9f06abfd0cb",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "27b244146c0fd3433ed7f5b8e00eb41c700b853e",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/Analytics.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/Analytics.tsx",
+      "sourceSha256": "25a45876b642cc2034a480b6c291cb13f00b2d9005bb3b2d760a9a4f85e40d40",
+      "destinationSha256": "91b6af89626a1f6b3902b89f3adcb53f27f4712fada8be8f64cd9ed1d41433e5",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "21c33c9520d3ceb46bd4e44ba01704de23fea07b",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/Practice.tsx",
+      "sourceSha256": "0c34d991694e6e89970e36190103cc5e84516eea8b66e60937582552933e2c06",
+      "destinationSha256": "139096eeba41968e726c92d179ba0bf808d9f9d862f4c52b04aa4a903559cdc0",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f1f49fbaf7773d2fa6a4e745e78ca53edd7ce86b",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/StudyGuide.tsx",
+      "sourceSha256": "045d85573cf2bae0184b3224eee321f0b3b7fbd24dab6237d750da34f9c4806f",
+      "destinationSha256": "151294671e8019e5b44eb6841ec4456aa340b7962279ba2119dfcdc24150fd30",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "90fdcf4f49bb23cb0ce2a3158ffd7e3ba7ab2069",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/flashcardDeck.ts",
+      "sourceSha256": "e019c018a42eac235e5e082082448dbbf94a8a10a3c6b6ff7044d4457786c6d2",
+      "destinationSha256": "e019c018a42eac235e5e082082448dbbf94a8a10a3c6b6ff7044d4457786c6d2",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "e95335eb6e7afb0130836376490141abe922f33c",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/glossary.ts",
+      "sourceSha256": "ebe930e78ab7e4f6c6d4cd8e8ffddf64fd82a5985f0a8222d5b3351314e793ec",
+      "destinationSha256": "ebe930e78ab7e4f6c6d4cd8e8ffddf64fd82a5985f0a8222d5b3351314e793ec",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "0f3e0273f0116bb135a34f7f0b068fbce3a13741",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/index.tsx",
+      "sourceSha256": "8ec55a3ff2731fca0fb8c52c2c179efb6c7fe0515352fb81d7355d8fab99f386",
+      "destinationSha256": "20782be8b94bc45c6588388a23d807fa17f239652aae9e69250d2635d7cda6b6",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "ec37d36cea34ccb7bd585b2e17d5b418b46c2475",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/questions/index.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/questions/index.ts",
+      "sourceSha256": "ca468c7c8a777c7dd888be3bbdf561302bd8a9686a72218d0e9f8156fa8fd650",
+      "destinationSha256": "ca468c7c8a777c7dd888be3bbdf561302bd8a9686a72218d0e9f8156fa8fd650",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "3028c71d36f6311274732ddf503a8da157e9d2fe",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/questions/math-advanced.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/questions/math-advanced.ts",
+      "sourceSha256": "14a93f8b8d41b866ebea6250e4f3b85853deff17766d67a84ae0db83f14eea98",
+      "destinationSha256": "14a93f8b8d41b866ebea6250e4f3b85853deff17766d67a84ae0db83f14eea98",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "20e37d844635da371f83a9bf41ff9a170551c683",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/questions/math-algebra.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/questions/math-algebra.ts",
+      "sourceSha256": "ef1755e25144be583c1021b778dcb3b25409312934da17242c2eebe8ab633a1d",
+      "destinationSha256": "ef1755e25144be583c1021b778dcb3b25409312934da17242c2eebe8ab633a1d",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "45a447c2238d6527626a308c908eab38965b61bc",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/questions/math-geometry.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/questions/math-geometry.ts",
+      "sourceSha256": "91359b554a2a46fedeab037aba21f7471a099642c173c200455ce4df88865c3b",
+      "destinationSha256": "91359b554a2a46fedeab037aba21f7471a099642c173c200455ce4df88865c3b",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f4086476bced583c9ff73c0699279ba41bf0e939",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/questions/math-problem.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/questions/math-problem.ts",
+      "sourceSha256": "40c632b1a2731ca6464a890fbbdb7be49362aadaeb3caf6d7052da16c4230458",
+      "destinationSha256": "40c632b1a2731ca6464a890fbbdb7be49362aadaeb3caf6d7052da16c4230458",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "08340a100149b9b2f6ce7952409baa5e3e2de13c",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/questions/rw-conventions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/questions/rw-conventions.ts",
+      "sourceSha256": "62e8e506f2f21938bc6760fc98b9f1b49bab52b7d6d5878284891b251a9d5945",
+      "destinationSha256": "62e8e506f2f21938bc6760fc98b9f1b49bab52b7d6d5878284891b251a9d5945",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "9e76bcd8d513652329a4751f64b43fddaba00c03",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/questions/rw-craft.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/questions/rw-craft.ts",
+      "sourceSha256": "a23a7a6d1efb337a43c1e76d5236a8066b61d6e8f0f38425ca211e9b338765db",
+      "destinationSha256": "a23a7a6d1efb337a43c1e76d5236a8066b61d6e8f0f38425ca211e9b338765db",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "62f57a65ec95baa6bc1fef5898c1f4a3c66999d0",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/questions/rw-expression.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/questions/rw-expression.ts",
+      "sourceSha256": "ff38844e1dfefba2c85fcc277af43aa60d4a682618ca6834617a4c4ae7ad76cc",
+      "destinationSha256": "ff38844e1dfefba2c85fcc277af43aa60d4a682618ca6834617a4c4ae7ad76cc",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "350cadb02001206a1594b86cc8a6f9f3127c5b34",
+      "sourcePath": "src/ExamPrepHub/exams/SAT/questions/rw-information.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SAT/questions/rw-information.ts",
+      "sourceSha256": "879f665724298f56b144942c4e0545ac850252e0907e619db7a923f9c510295b",
+      "destinationSha256": "879f665724298f56b144942c4e0545ac850252e0907e619db7a923f9c510295b",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "c3fce0bd4cb73aea7ef29065ed64bc883d26d686",
+      "sourcePath": "src/ExamPrepHub/exams/SCPERMIT/MockExam.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/SCPERMIT/MockExam.tsx",
+      "sourceSha256": "b3efac05581628e7485275f594e7306ee8f6e35dd9eb0d3128b5dc326cec978a",
+      "destinationSha256": "b3efac05581628e7485275f594e7306ee8f6e35dd9eb0d3128b5dc326cec978a",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "567331d2a5206811b63e19645990847a40c58f35",
+      "sourcePath": "src/ExamPrepHub/exams/SCPERMIT/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/SCPERMIT/Practice.tsx",
+      "sourceSha256": "0549f9221f4fbeb567e856c1414da26de16b8fca8498b31b3815c6e60147715d",
+      "destinationSha256": "0549f9221f4fbeb567e856c1414da26de16b8fca8498b31b3815c6e60147715d",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "d22986d9d8fd9a205df29fb1eed1eb00ea07d6ff",
+      "sourcePath": "src/ExamPrepHub/exams/SCPERMIT/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/SCPERMIT/StudyGuide.tsx",
+      "sourceSha256": "56d25395f48450b895b9e9d0cb95fb2212b8148cb661b6813c9924875fc68fbc",
+      "destinationSha256": "56d25395f48450b895b9e9d0cb95fb2212b8148cb661b6813c9924875fc68fbc",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "e2433ff67faffbc8655493ae5a43a1537fec6760",
+      "sourcePath": "src/ExamPrepHub/exams/SCPERMIT/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SCPERMIT/flashcardDeck.ts",
+      "sourceSha256": "03cc9a6eee56b8eaa759018cf147adbd5716f62b41558bcfd7ac366f52cc9800",
+      "destinationSha256": "03cc9a6eee56b8eaa759018cf147adbd5716f62b41558bcfd7ac366f52cc9800",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "98016229b4e7842afca73e94097adc3e2b4179a2",
+      "sourcePath": "src/ExamPrepHub/exams/SCPERMIT/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SCPERMIT/glossary.ts",
+      "sourceSha256": "7f4de0f753fbb72831b058707c8aed75589e19eae9df396ee3dea7257ea773eb",
+      "destinationSha256": "7f4de0f753fbb72831b058707c8aed75589e19eae9df396ee3dea7257ea773eb",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "09e89b9801c4821d0414eb95052b9a481e91c59c",
+      "sourcePath": "src/ExamPrepHub/exams/SCPERMIT/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/SCPERMIT/index.tsx",
+      "sourceSha256": "080928d386de3f227f4b57bf8563c2baa8d3ce22aef2002d533f1739f92f46f3",
+      "destinationSha256": "080928d386de3f227f4b57bf8563c2baa8d3ce22aef2002d533f1739f92f46f3",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "70268dca2082973c62a09fbc6ca90694135ab9f9",
+      "sourcePath": "src/ExamPrepHub/exams/SCPERMIT/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SCPERMIT/questions.ts",
+      "sourceSha256": "834b958c3bf64168651ba03a2fd58623b531f95a71e0c73cd05d93ad59dd489e",
+      "destinationSha256": "834b958c3bf64168651ba03a2fd58623b531f95a71e0c73cd05d93ad59dd489e",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "a4da5d95f04beb187f031f6574bb633490cb5439",
+      "sourcePath": "src/ExamPrepHub/exams/SCPERMIT/signs/catalog.ts",
+      "destinationPath": "src/ExamPrepHub/exams/SCPERMIT/signs/catalog.ts",
+      "sourceSha256": "d39e4eef762974a2ab8a0507debd9088a243e539ae5e6eefb6feba10f42ac32e",
+      "destinationSha256": "d39e4eef762974a2ab8a0507debd9088a243e539ae5e6eefb6feba10f42ac32e",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f89fb85a857f323fc8a71a250ade1721eeded077",
+      "sourcePath": "src/ExamPrepHub/exams/SCPERMIT/signs/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/SCPERMIT/signs/index.tsx",
+      "sourceSha256": "a3dcb82302aeeb8d9e29245cc4937d790633c8ac3fcd3bc01d30a9a4fea21774",
+      "destinationSha256": "a3dcb82302aeeb8d9e29245cc4937d790633c8ac3fcd3bc01d30a9a4fea21774",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "1df60ad627f0b61d9f775aa67442511dffb36c0d",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/Diagnostic.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/Diagnostic.tsx",
+      "sourceSha256": "3bca0398f7d75869844f798db7a4bfe9047472ab123bbcc1118ebc5fa19b1f1f",
+      "destinationSha256": "b2fb92cc99ba7fe7345fc9559de22657815d780452d2a43122c81ac1375e2945",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "0aff2855381f7ff44dfa3bef27f3134f54252fc6",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/ExamSandbox.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/ExamSandbox.tsx",
+      "sourceSha256": "f19c7a34281aad049f40e92c9846c16c4ee3e8f4dd8c8f2dc96aea7d4846ffe9",
+      "destinationSha256": "787e5b5af6014a0c65a2a9ac218c4e78ea34ffafcd4b1cd0ff0c755885fae734",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "391e6e0c3df750bc06cfbe6f613db627faa45507",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/Flashcards.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/Flashcards.tsx",
+      "sourceSha256": "cf2ba9dc9c54f4f5d97a7cb749623239ea2f0a37bbd26577c0336dcc7e3d9f2c",
+      "destinationSha256": "cf2ba9dc9c54f4f5d97a7cb749623239ea2f0a37bbd26577c0336dcc7e3d9f2c",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "39b85edd657916485ea1ac2b265f0c8eadbb2c8d",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/Practice.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/Practice.tsx",
+      "sourceSha256": "5eb392532eba6a19fc923dabd22bb87602d153beacad2682e75956d3b2db740d",
+      "destinationSha256": "465453493db7d8ad1c3f0ce127936ca5481cdbc5e8c638460a6084420462bb9f",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "aaf8587dd38a575fbe435ea4c0ae39354b0da212",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/StudyGuide.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/StudyGuide.tsx",
+      "sourceSha256": "7b68f7ece7388d1c68174093707fa4eda9f307b9231d2d6f145c56569604d106",
+      "destinationSha256": "8fe0e3fff2be7ec9fea69699be698163386b9cd0fe4416ffa56db1e1b99d1cd0",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "4ce5ed478443cf9a5d550e21593a37cf1b5c2533",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/UnifiedSearch.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/UnifiedSearch.tsx",
+      "sourceSha256": "63d30d687c5c16f70e0a16389a40bb6006f94b57c78c4633d488581fc2a565f9",
+      "destinationSha256": "63d30d687c5c16f70e0a16389a40bb6006f94b57c78c4633d488581fc2a565f9",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "442c0cbe6c88fc0d857bcdd83b2ef70f21cd1abb",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/examSandbox.css",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/examSandbox.css",
+      "sourceSha256": "b911ccc391505eed8c2bfe651b87d19bc82138f8d1d7b112fee31247099e7cbc",
+      "destinationSha256": "b911ccc391505eed8c2bfe651b87d19bc82138f8d1d7b112fee31247099e7cbc",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "aacab180ffb0270dc14e0669a0659ed7b99da3f0",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/flashcardDeck.ts",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/flashcardDeck.ts",
+      "sourceSha256": "7ccfb04a94f0d0d3bb71b00b2931e28a8ed1e2fbcbb0365d97125ab6d15c985b",
+      "destinationSha256": "7ccfb04a94f0d0d3bb71b00b2931e28a8ed1e2fbcbb0365d97125ab6d15c985b",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6a8e564b4c8ca371e7d0486aad1b118d033ae737",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/glossary.ts",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/glossary.ts",
+      "sourceSha256": "ef074dab0b893bc0b89c469558e4aeca128c320de07e39987fa335e005412f65",
+      "destinationSha256": "ef074dab0b893bc0b89c469558e4aeca128c320de07e39987fa335e005412f65",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "3e4b44f4832e9578059412bd3c6613080643069a",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/index.tsx",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/index.tsx",
+      "sourceSha256": "ab27177022d11d5b45bc31d8e11f2a2fcd5fd9c297b1c699badbe75865b7f3db",
+      "destinationSha256": "ab27177022d11d5b45bc31d8e11f2a2fcd5fd9c297b1c699badbe75865b7f3db",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "384cafa60863d7f0b8d961716e5a5d0178e6d765",
+      "sourcePath": "src/ExamPrepHub/exams/USHC/questions.ts",
+      "destinationPath": "src/ExamPrepHub/exams/USHC/questions.ts",
+      "sourceSha256": "cbb41c7069807965b64b3801d42c81396c86822b68c5794d5036b0516959ea99",
+      "destinationSha256": "f3662d5b7b10ba07677b23c04c5a7e7933b35cda16881044f02c5bf767189eee",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f4c45b7de812c3431bb40dc75dc3d25c7b6b154d",
+      "sourcePath": "src/ExamPrepHub/index.tsx",
+      "destinationPath": "src/ExamPrepHub/index.tsx",
+      "sourceSha256": "ea8be647f694ca59af277b4bc7f1caeb8daf9907ba632c6350edf9cfa4d9e24f",
+      "destinationSha256": "175226888c774aed2194e7a5c27fcef735d82aed93eacd409ad9e5aee249f9cd",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "a1acab3945a3c66673bd54997a5425d8871d3741",
+      "sourcePath": "src/ExamPrepHub/shared/Callout.tsx",
+      "destinationPath": "src/ExamPrepHub/shared/Callout.tsx",
+      "sourceSha256": "b2760dad9611b27a357fcd2d2f4da03b61b905b3232a9a13723c4638b82b4f92",
+      "destinationSha256": "b2760dad9611b27a357fcd2d2f4da03b61b905b3232a9a13723c4638b82b4f92",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "14d96342fad338583b5ce55d3d5c08b2a19d03f3",
+      "sourcePath": "src/ExamPrepHub/shared/analytics.ts",
+      "destinationPath": "src/ExamPrepHub/shared/analytics.ts",
+      "sourceSha256": "7e1e89b74cf174e01cc051e1e473b175fb8c21aac25ffcda151a967c061076d9",
+      "destinationSha256": "c25e2241390c8c80717d1319334c5b7451aaf68e46e10e6161072f1a9c92f62a",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "25b0cfba9ae5842e8855b4ee0bf264e493ff3a92",
+      "sourcePath": "src/ExamPrepHub/shared/bookmarks.ts",
+      "destinationPath": "src/ExamPrepHub/shared/bookmarks.ts",
+      "sourceSha256": "64ee8460a5ddeaffbfe59615bd686e2f80543e5ccca8b6c75a4bf99841e0c113",
+      "destinationSha256": "782c7ba092252462d89dc12c2de9412d17ace3cad89a83a2e7a12b295491c5ea",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f0878f2e9398efa04fc44cbc0afaaed81aa2b525",
+      "sourcePath": "src/ExamPrepHub/shared/components.tsx",
+      "destinationPath": "src/ExamPrepHub/shared/components.tsx",
+      "sourceSha256": "a61bea5fdf12d4bf1f50a8d3b63ef56e80f853a45a75ca3bbb76869c78741a26",
+      "destinationSha256": "6bbb82c3a004fd70a7cd12835dfa406fa5eeec37771db512fca87c381ac16aa4",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6789b79a92c398411fde34676291c9cfd42ad48c",
+      "sourcePath": "src/ExamPrepHub/shared/drillStats.ts",
+      "destinationPath": "src/ExamPrepHub/shared/drillStats.ts",
+      "sourceSha256": "71679cf2d2ab2eb575a3286eb715e515740ffdcd8ea7d19b085971d4c5cc7bad",
+      "destinationSha256": "240b7b60f10ea7b9f600c69e460d2f16ac5bb5f3a82629fc8808978343612c6e",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "86d99608ce7cf1842bf585249bc5a9db3db36994",
+      "sourcePath": "src/ExamPrepHub/shared/flashcardStats.ts",
+      "destinationPath": "src/ExamPrepHub/shared/flashcardStats.ts",
+      "sourceSha256": "024bceafa5dc73606cf7cecc761002cd77befbd82c4372bc9ccf3285989155b0",
+      "destinationSha256": "5e4be13d4aab6cd1e8a409ea2dcd2ec22bab26ed7d503ae69c1b8fafc6d5c4b5",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "8d109e8e96152ac7466dee0124e62cf42018aec2",
+      "sourcePath": "src/ExamPrepHub/shared/notes.ts",
+      "destinationPath": "src/ExamPrepHub/shared/notes.ts",
+      "sourceSha256": "6d35a0e78949d8827827acbafaf66cf223ebea9033cbd4771d2bb948649b2982",
+      "destinationSha256": "8d078a26f7784098f50d94a1aaa16ca08e1361c9bd0e2c72412f15f2e4b55f52",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "968ad2a174586611c8b26b02425e66a3dae6e7b3",
+      "sourcePath": "src/ExamPrepHub/shared/sandboxResume.ts",
+      "destinationPath": "src/ExamPrepHub/shared/sandboxResume.ts",
+      "sourceSha256": "6d514d358cfa1071828b92a5da96d0b3517d397aaa5df0c88175971a731e1080",
+      "destinationSha256": "5d46c388579f86971377c1eceb7a97d5f627f759a385328be3072f67cdca0a48",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "8ecca7c5472b68ef5d92bacc02a8760e3ece9a3c",
+      "sourcePath": "src/ExamPrepHub/shared/streak.ts",
+      "destinationPath": "src/ExamPrepHub/shared/streak.ts",
+      "sourceSha256": "c28bc0fa3a38ec89488f7c311af03d6b331a03d1757be00c9f77ec36b59b36d6",
+      "destinationSha256": "482e69722c729d847cfc336e2fc7e6a6e8ec10937f73753993eded6898616025",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "947be672eb296fe54bda8477553e544a774b9167",
+      "sourcePath": "src/ExamPrepHub/types.ts",
+      "destinationPath": "src/ExamPrepHub/types.ts",
+      "sourceSha256": "fed96caa1b844784d4fb452dcae4718b43310cb77efc114dee5cdb1f2bb26604",
+      "destinationSha256": "fed96caa1b844784d4fb452dcae4718b43310cb77efc114dee5cdb1f2bb26604",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "35c574e676c87e19542d34a233b3622c817b842e",
+      "sourcePath": "src/KnowledgeBase/AiCostTrackingGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/AiCostTrackingGuide.tsx",
+      "sourceSha256": "e98c31f7e787810da74cf742badfd12ba93c2f3fb7a5540f2900f8f7ef858773",
+      "destinationSha256": "b445b59164e4ee72f28454b7304cc188e4507509dc40f047bc6d2c2ffe59fcce",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "caf45392112fa031c4ff89d51f9e99edd5443499",
+      "sourcePath": "src/KnowledgeBase/AiFeaturesGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/AiFeaturesGuide.tsx",
+      "sourceSha256": "eef8a2de0d063902e9893b7577c6acaebf1579d48d9956b44f12cb0da81d40f9",
+      "destinationSha256": "8407ee85916071f6dfa9689d937458eb97511f9940c35c1a9f8f02c3c8fcb399",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "2a842d8b140f32dfd564a276abb3f9d400f1b3d8",
+      "sourcePath": "src/KnowledgeBase/AppSecurityGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/AppSecurityGuide.tsx",
+      "sourceSha256": "93aa6c7a6d061aea56686e7b27914c12271da62f1519e6fd3ff0128c2cdce531",
+      "destinationSha256": "de93c2eb67704ae0dc098cb567e5ad637f024734934e19a409c12a88d1ea717e",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "752f5bdac2017a4705f5d6848565f5c97aa5d083",
+      "sourcePath": "src/KnowledgeBase/AzureAiFoundryGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/AzureAiFoundryGuide.tsx",
+      "sourceSha256": "2737c3b0b475027e27245e593e9b74cba418feb073b176234c542bc03d98fe80",
+      "destinationSha256": "f2b91b93faf084defe03003063a3a5c822659bfe65dc121e1c8af600175424ef",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "014f2d3279c5abc89a753091a9371c716ff31633",
+      "sourcePath": "src/KnowledgeBase/AzureDevOpsGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/AzureDevOpsGuide.tsx",
+      "sourceSha256": "d252bb658bbaf89ecd0b3b7b59afb898c17bb67fca6d861660a37d4854ff12d6",
+      "destinationSha256": "69a0f8360a552954cf4c69199f6cd28a500a2168c0cc39fa88fdd0959cddfda6",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "11fe439ee4efc9f0ced835918c3825703b8aede0",
+      "sourcePath": "src/KnowledgeBase/AzureGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/AzureGuide.tsx",
+      "sourceSha256": "4584f771fc22374e5c078b396e0fbe693e7d8ab5f77831ecdd2238421922c0c4",
+      "destinationSha256": "50d1dbf2ca8f6c47d89968ba5d85064fa665f6d3f84167a85416a6a7ba42a201",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "64ad1132c92572b9a95e521f02b8da5c87d28c8d",
+      "sourcePath": "src/KnowledgeBase/AzureOpenAIGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/AzureOpenAIGuide.tsx",
+      "sourceSha256": "b692ed891041f225afcd8fe5c9d831dcba011e1db615b9b8cf06a46dfbe32551",
+      "destinationSha256": "67ddb154cc28b45efae432e39645392281ac725b8829f1f032ae5380c2ddca83",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "94042631c50ebb8d197b78c4b9f023c7969e5dd1",
+      "sourcePath": "src/KnowledgeBase/BlockBlastCloneGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/BlockBlastCloneGuide.tsx",
+      "sourceSha256": "1e0c52cb0ed9394452fb905a4a75c568dca8d2d9fde1f45a5f4e5d6488e3880a",
+      "destinationSha256": "1e0c52cb0ed9394452fb905a4a75c568dca8d2d9fde1f45a5f4e5d6488e3880a",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6f4102037f16b18755ce73e2a66a36cbd6553552",
+      "sourcePath": "src/KnowledgeBase/BlockBlastFullSource.ts",
+      "destinationPath": "src/KnowledgeBase/BlockBlastFullSource.ts",
+      "sourceSha256": "d43c7642c86d2dd82e72fa3e6e21a114048c8b82a303fec0def3045031ac0813",
+      "destinationSha256": "d43c7642c86d2dd82e72fa3e6e21a114048c8b82a303fec0def3045031ac0813",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "76f0a1e7b5beed90391ec0dca0e86abda697f0f7",
+      "sourcePath": "src/KnowledgeBase/ClaudeCodeGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/ClaudeCodeGuide.tsx",
+      "sourceSha256": "fa7a62e3a3af1ad1dd63c2d3f2ab626d15410e0ef3ed9611747a188b46fa8272",
+      "destinationSha256": "d2454c61144755f04d909cf80f1330b588ce18da20132b4046b0a7ed8b26f847",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "456c247cd7e8a9788ba997abe4511ee84a2cde8e",
+      "sourcePath": "src/KnowledgeBase/ClosetToCloudGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/ClosetToCloudGuide.tsx",
+      "sourceSha256": "0d93faf5131229d5d4e11484118c6df561d33bf9d4d74c515a848bb65f836f63",
+      "destinationSha256": "69ece683530dfd6699f0be2c1f9530aa3dbd0b014607a592d71f6b8cc7fe127d",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "a3c0ce87162fe32f3af11ab3e714c97686e26568",
+      "sourcePath": "src/KnowledgeBase/CrossAppAuthGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/CrossAppAuthGuide.tsx",
+      "sourceSha256": "b2f60df59395dc788064902f13b1939562b1d9f0c1e7702f8c753ce9e73ee461",
+      "destinationSha256": "1f7971b860fde1522df6b01a260ee6edea1b73f6c5ea588171703289ac0dfc85",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "2321cda35c5062a8032e9071f8047c92e26832b3",
+      "sourcePath": "src/KnowledgeBase/DockerfileGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/DockerfileGuide.tsx",
+      "sourceSha256": "356a6ac4ed3a6850642886ab9d4f54ceea6fd257efebfdec8e2b53e2a16bc8c3",
+      "destinationSha256": "75d919b58701350846440db8590036b570ebe7fead55316228038513f5f78d56",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "576d7b17c1aeee77d110b2e9b2081e01784effe8",
+      "sourcePath": "src/KnowledgeBase/EntraIdGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/EntraIdGuide.tsx",
+      "sourceSha256": "1b3b3980a1ee2d7607895beb29994b4706b3daf63c77e19471de062c7f76bb51",
+      "destinationSha256": "558a7cc77798fe6b3187db67992d2fd3c1f3b3d92c06d54e9cd5a9c8be2b8cc5",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "2f87f63edfe105841de57f75ae81c9b9fe982f9e",
+      "sourcePath": "src/KnowledgeBase/Express5Guide.tsx",
+      "destinationPath": "src/KnowledgeBase/Express5Guide.tsx",
+      "sourceSha256": "9556470408cb2243ef81a90a82f832162559778c93859d038bc3fe458ec93bb4",
+      "destinationSha256": "0139c7186f418849aef0fe378dc6fda6f458f428ae8698d47c3b9dce2b9928c1",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "7c77eafc057726f82dc93d06e6b911d151166900",
+      "sourcePath": "src/KnowledgeBase/FileUploadsGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/FileUploadsGuide.tsx",
+      "sourceSha256": "9a870798dc5d631464d89b49d72f5f731328577d6d2920e261dcbbd3c379392b",
+      "destinationSha256": "ecf86d0a6dc9562ddf711d2498fe1c830d9aaf0f1ea6585146634a8b46a43529",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6d3ab3547ac2bddd5b78ea51c89825a65a9345dc",
+      "sourcePath": "src/KnowledgeBase/FirstAppTipGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/FirstAppTipGuide.tsx",
+      "sourceSha256": "3ec9b12de9b7ff9bb7257a123e7f1dea8dab6edb9423b6a6f839ac5566222649",
+      "destinationSha256": "3ec9b12de9b7ff9bb7257a123e7f1dea8dab6edb9423b6a6f839ac5566222649",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f10c0868e73ed0cbd2557d64a084188b815d713c",
+      "sourcePath": "src/KnowledgeBase/FirstAppTodoGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/FirstAppTodoGuide.tsx",
+      "sourceSha256": "081d09b76249f2bdc222eb0c9ffa455ae4e2b3fec21387ede2dcdc9b1d83bbb6",
+      "destinationSha256": "081d09b76249f2bdc222eb0c9ffa455ae4e2b3fec21387ede2dcdc9b1d83bbb6",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "e62888a75530459b0054c0f48204a32868bb1572",
+      "sourcePath": "src/KnowledgeBase/FramerMotionGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/FramerMotionGuide.tsx",
+      "sourceSha256": "0a9a560c64ea24181882ff2d961b3e725d50f4e0fd995b3f5f5fed6b208642de",
+      "destinationSha256": "2ab6cef4864a0bddd2c459c0801abc8fa85f43030c40201b52c8ebca7457718c",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "74d242a051dbe582fee659a2a9efb291d419bc0f",
+      "sourcePath": "src/KnowledgeBase/GitHubMasteryGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/GitHubMasteryGuide.tsx",
+      "sourceSha256": "0f0b562966207409cceeba33781bb2837b80947a7eec8b6b14fdcbde58a33908",
+      "destinationSha256": "4a28f1340f02575776ee0e475f88f14253b8dabb1c22c55fc7ec5f2633d67dff",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "87163348a1a6c6513bc98d8b03c52b901e47f212",
+      "sourcePath": "src/KnowledgeBase/GodotBeginnersGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/GodotBeginnersGuide.tsx",
+      "sourceSha256": "833df11ec7ef16424ea3b9837b2c36f06f55e4cbaa2c014ab816a730aa0cdaf7",
+      "destinationSha256": "833df11ec7ef16424ea3b9837b2c36f06f55e4cbaa2c014ab816a730aa0cdaf7",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "85ab94a125e771c66fc334e07853abad06d86832",
+      "sourcePath": "src/KnowledgeBase/GraphileWorkerGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/GraphileWorkerGuide.tsx",
+      "sourceSha256": "57a6f54358318b55b7a3bb0fa3d6b1c0e5a3011760e696297bc0d2ac6c644820",
+      "destinationSha256": "55b15c567e4325afef9e1921890e4038ad4ee80c0cd2f7df12f15f89fd0272c4",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "fb26fbc042acc17f9bd1b0f72677156a5dbf2e8d",
+      "sourcePath": "src/KnowledgeBase/GuideTTSControls.tsx",
+      "destinationPath": "src/KnowledgeBase/GuideTTSControls.tsx",
+      "sourceSha256": "82919da5244ef2d2c01874e3dfda73732aa4ae505308ce40420ba42a95658a5d",
+      "destinationSha256": "4a492e489732db6aac3bf17f035b8c3556cdb492b4486b240e83a0f25014efd6",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "f60c50c593f6435481ae06cc5098822198638a3a",
+      "sourcePath": "src/KnowledgeBase/IosGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/IosGuide.tsx",
+      "sourceSha256": "53042d15c65202bc3c1700f96fd6b97a0d4ad88d2c055f0e798751b14cd00469",
+      "destinationSha256": "53042d15c65202bc3c1700f96fd6b97a0d4ad88d2c055f0e798751b14cd00469",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "fbc9c67b05bf7902fda4b89ae9875541c6a4f4ec",
+      "sourcePath": "src/KnowledgeBase/JwtValidationGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/JwtValidationGuide.tsx",
+      "sourceSha256": "e18313b9128467c85a095a1ba8ed8af76359f05055ab29a8b81f1370de756e75",
+      "destinationSha256": "1f0479ee3c30bb2b2d5f70bfc1e5f16c8e857cd45b8039a7df20e49aaccd94a1",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "b3326802a064aaf006ef29395f9538e76a3138ea",
+      "sourcePath": "src/KnowledgeBase/KeyVaultGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/KeyVaultGuide.tsx",
+      "sourceSha256": "bf2f743f78fde2612ea7d5a7c6f91c66a6e1f65d4c3315cac5169b662c53d952",
+      "destinationSha256": "0bfec2ea52a0572fc792ff6df9f0040256cbe36b1d77bac4733c4c1bdea01ec2",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "b2ff531cf5e7e6be3563f37dd8b5ab19bab606bc",
+      "sourcePath": "src/KnowledgeBase/LMStudioGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/LMStudioGuide.tsx",
+      "sourceSha256": "281d5c7d6b3ffdd348c2c6511921b2b92422f14b6432fcb72da22acf1a2034f9",
+      "destinationSha256": "281d5c7d6b3ffdd348c2c6511921b2b92422f14b6432fcb72da22acf1a2034f9",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "4d56354bd2be0962c1ce47cf35e15bad5c4218f1",
+      "sourcePath": "src/KnowledgeBase/MsalNodeGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/MsalNodeGuide.tsx",
+      "sourceSha256": "8d81ca9d569ea39a7a7be375bd9002c6f3c60c6cc010135b8093c19db1fc5967",
+      "destinationSha256": "c2aafee9aec1e3f3538c4d377123dd6d12f2b477b657a19110b42c5668ed37d4",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "cc6e87c70089dfa26a9f637fcd030f118ae2be07",
+      "sourcePath": "src/KnowledgeBase/MsalReactGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/MsalReactGuide.tsx",
+      "sourceSha256": "e29c55f775181e655b0ebdacf420b1519e961378b7257860501e08b094dccd94",
+      "destinationSha256": "5714f087ad8725b6903fc628be764690ac0fd5489977d14ce43ed3b03718352f",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "1c0e9777e797ef9446e3ede18f59c5984b8650eb",
+      "sourcePath": "src/KnowledgeBase/MuiEmotionGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/MuiEmotionGuide.tsx",
+      "sourceSha256": "4fd74cc2758d206797795c5e83791dae36bb636f97d2a88eb16b1e37230bf6ec",
+      "destinationSha256": "cb0c6ccc436c3dd4262e859eaab3415b0f323806f4c1ff8a2aad26727acb1c1b",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "6f5f26414a6333d665ce7e701465164ebe64df99",
+      "sourcePath": "src/KnowledgeBase/NextJsAppRouterGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/NextJsAppRouterGuide.tsx",
+      "sourceSha256": "fbbcfb61bfad078aaed2e18dfbbab93f1854b99267d4b1eff8be7d5836806ebc",
+      "destinationSha256": "4a1433230207cc2b65251c2b9ca614ff06e48d9e6dab4f0d05195512a9087c00",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "96ea7575445f5a479aa51d6b84e36a1336541369",
+      "sourcePath": "src/KnowledgeBase/NodeRuntimeGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/NodeRuntimeGuide.tsx",
+      "sourceSha256": "bd6b1e7757410b1060ad1d378542b9656efe3cc95e79d168349b7cb155daa88f",
+      "destinationSha256": "44c48a48c5bff6918fd75a278125563e2d70fe67024c30484a18cea93980ef01",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "ce59d7e10655715ddecf14cecaca7f4bc39a10ab",
+      "sourcePath": "src/KnowledgeBase/OcrAzureVisionGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/OcrAzureVisionGuide.tsx",
+      "sourceSha256": "9f9c76fff7cd37d9b728c81eecdb651c3025b89a2f0fa80dde26ac863431dcd3",
+      "destinationSha256": "7d3064ce677e12f15e4e44f5acd3f14c0c371a7137624252e1794c7ea7d6aa9c",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "0617ffed12007dcd04457eaebcf9346f0e9ad931",
+      "sourcePath": "src/KnowledgeBase/PerUserSQLiteGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/PerUserSQLiteGuide.tsx",
+      "sourceSha256": "4b9b3b2b420c9d48be3d3b4af6dabb0103f68e664918733bfd9f27fb1be83121",
+      "destinationSha256": "cd8baaf03cfd710cdf7de399ea514a1c87577927d80cbf75a7f7e451f58dfe95",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "e7df76739c8fd02148fe0b40f4facd40146a382f",
+      "sourcePath": "src/KnowledgeBase/PhaserGameGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/PhaserGameGuide.tsx",
+      "sourceSha256": "174fdf541c53396826fe9798a70d11c6b528825649e059669eda71bff019e52e",
+      "destinationSha256": "174fdf541c53396826fe9798a70d11c6b528825649e059669eda71bff019e52e",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "8ca7092ada8c0047e9464927955fe363bb8d9d7a",
+      "sourcePath": "src/KnowledgeBase/PhotoHandlingGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/PhotoHandlingGuide.tsx",
+      "sourceSha256": "3bbd66b25b38206004ec361a7fdbafde29cb7d7280186eb8afa8984f7fb02072",
+      "destinationSha256": "3bbd66b25b38206004ec361a7fdbafde29cb7d7280186eb8afa8984f7fb02072",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "47e057a05855b530c6c74bfa68fe5b35ae2bfc6b",
+      "sourcePath": "src/KnowledgeBase/PlexIntegrationGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/PlexIntegrationGuide.tsx",
+      "sourceSha256": "29bbb940983895c634dbecaf8e33ed56d69267b4fa3fb8974aed5d3e4bc72eac",
+      "destinationSha256": "349e004dca9870862a9b5efea75bfee0f840fe8b68dcf47fd6ee57263691603e",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "5510776b7e3ed1ba9dcab1ccb02df1b6c4be1dc7",
+      "sourcePath": "src/KnowledgeBase/PostgresPgvectorGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/PostgresPgvectorGuide.tsx",
+      "sourceSha256": "6f4ff831a19e9361cefed0bd061b67615b03d179790f0e8e4d3b444816494f38",
+      "destinationSha256": "b98769b633898e85e6305e3199e0e32df54fd09f63e70eb957952e3007a1149e",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "beb59c440433a0d18aa132835e6b55dac096784c",
+      "sourcePath": "src/KnowledgeBase/ReactPatternsGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/ReactPatternsGuide.tsx",
+      "sourceSha256": "ce54746e729f3df64aa2d37d5e2bd170d4e985879692ddc5bd2861c6e97e2b84",
+      "destinationSha256": "38c7c9dbf4a83484ac892a23abb12c65e1631f63a67efb50cb9bb20d9a5f1b99",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "92914ce9e760121a21df5c4efa4bbe3c0f36b509",
+      "sourcePath": "src/KnowledgeBase/RechartsMermaidGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/RechartsMermaidGuide.tsx",
+      "sourceSha256": "b28674092f2ed976a7a3eaf906827bcd3e44123f8867e79683e75a0fd2fc77c3",
+      "destinationSha256": "0482c1a4cb7c31f53bb1f29a0e606381edc31bd4af9ee352956b43e7c01837eb",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "03be019e80b8195e695e50d963029c7444babf10",
+      "sourcePath": "src/KnowledgeBase/SQLiteGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/SQLiteGuide.tsx",
+      "sourceSha256": "9b36e188c3ffbac220149b3333c986f7beed7899057682430a93eeb8e04ab47d",
+      "destinationSha256": "dd2e56a5a3444445b749bc54885e3b257edbea3a879812e2f8c442a845a0a360",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "995bf368c0c3425fb193bbbb8708a939e4e4c1b6",
+      "sourcePath": "src/KnowledgeBase/ShadcnRadixGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/ShadcnRadixGuide.tsx",
+      "sourceSha256": "1573ab2ad60d3fc88794807d7086dc6ccc8ccc86381dc9cb7451ad9efa977d4e",
+      "destinationSha256": "98b85f29acdf2a4c0c0f52d9693d4fa7ecab6ce8c59c868c766d37936c9bf573",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "773ccc705c58864526b8b8f4d0e37eb716430bb7",
+      "sourcePath": "src/KnowledgeBase/SwiftUIFundamentalsGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/SwiftUIFundamentalsGuide.tsx",
+      "sourceSha256": "bf6d6f44e7d63e0dc5df9639724e83c32ff860d771c443e225118099cd3ec820",
+      "destinationSha256": "bf6d6f44e7d63e0dc5df9639724e83c32ff860d771c443e225118099cd3ec820",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "477a3f613f7a149395d0a81874533d17b7264284",
+      "sourcePath": "src/KnowledgeBase/TailwindGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/TailwindGuide.tsx",
+      "sourceSha256": "48e5b91ea042dcea5a0b6cc220a33306774479185efcfc177f76edd73560e8f0",
+      "destinationSha256": "73a6b28532a01d4003a367c46974251a80e77c8ac767603534b36b4cffbccd40",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "d79445435abd6b33023a9cc0356cf74cd04fb450",
+      "sourcePath": "src/KnowledgeBase/TipTapGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/TipTapGuide.tsx",
+      "sourceSha256": "35b0e484fba7bab2a7c64520b16294f6701fead5638582b57ce6ab01838b3a89",
+      "destinationSha256": "adbfdfbac848a83a721e26fa8ffcc6053f4e8b28b628d80784c758d36aca5003",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "d7aa558bd70aa82760742151db91c43455c48697",
+      "sourcePath": "src/KnowledgeBase/TypeScriptStrictGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/TypeScriptStrictGuide.tsx",
+      "sourceSha256": "f3aabcfba24e86dde690f4cd5a958dbf2e9ac062d52ae5dcaec8835c865d865a",
+      "destinationSha256": "90434774bea08a1fbb69c182d0a66cd18f1ee7cf3ba6bb2d5aea712e22b12b01",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "2c58fe62ab1858c1f61b944caaabb40da87148cc",
+      "sourcePath": "src/KnowledgeBase/VectorEmbeddingsGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/VectorEmbeddingsGuide.tsx",
+      "sourceSha256": "62471a55a2cb83581aeae48f9537e945f18a6f16433ae10e14908e0b6dcaedb5",
+      "destinationSha256": "a027929c1fd31c146389d15cd2ba6c65d4ddb44e6772b132096ddaa12b9907b0",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "02847bcd8ceec24835ebb079541a485d58aab243",
+      "sourcePath": "src/KnowledgeBase/ViteBuildGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/ViteBuildGuide.tsx",
+      "sourceSha256": "d29d4ffff8fae2a8c4d00839270c56d2d09136d921496b1c640fc9220393eeb3",
+      "destinationSha256": "15b09d9c4eb9683a91a572205180cfc093bf4d14c064c4b40b9b3b930ae144f1",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "def1687a01a69a8db4a77760dc3b3bcbfe1c1614",
+      "sourcePath": "src/KnowledgeBase/VmMigrationGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/VmMigrationGuide.tsx",
+      "sourceSha256": "3c5a4dee0cb459992d3369f49b8c9495003eda85b3ff2618d24838f933d1f04d",
+      "destinationSha256": "e4a82cca8f8e9f34640b04afc8f601375a39eebfd0a53e8c18a1bb1d6cfd5427",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "57f51e88c8f10116a815da9d8caf47b4d386ad9a",
+      "sourcePath": "src/KnowledgeBase/WKWebViewGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/WKWebViewGuide.tsx",
+      "sourceSha256": "df704dceab725a31acf1db1b556141a1c16a3886f313bfbf6b2aa65f5e1fe0ae",
+      "destinationSha256": "56c6ed402d431bab132e3f8cc116063f9f3fc797cf5c279c710de54a0267a94e",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "c4027414b851bb74ce8e7b293d7effd6bbc99882",
+      "sourcePath": "src/KnowledgeBase/WebGameDevGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/WebGameDevGuide.tsx",
+      "sourceSha256": "1829779429299d7804e2b422089d7f10eb300877b72a8435b68dd3c54c66cb9e",
+      "destinationSha256": "82ec5dcc8aab2a864fa629cf3a2547bc79d8d8ef7110af5f5aaf5589be147f84",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "7727bfb22dfeb2eca2b01b6751c6a537021b0516",
+      "sourcePath": "src/KnowledgeBase/XcodeBeginnersGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/XcodeBeginnersGuide.tsx",
+      "sourceSha256": "000707d9e52e58bb14939ae315a7e7651249e21f43bd9bf956c16ab99b92b58e",
+      "destinationSha256": "000707d9e52e58bb14939ae315a7e7651249e21f43bd9bf956c16ab99b92b58e",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "5271d5aad0f995a88a230fb8e6c1a187fa7aa67c",
+      "sourcePath": "src/KnowledgeBase/components/Callout.tsx",
+      "destinationPath": "src/KnowledgeBase/components/Callout.tsx",
+      "sourceSha256": "474d0d64a373048c8b51ca936ac7ed49c026ba8ef78df9635462b612cd7623a2",
+      "destinationSha256": "474d0d64a373048c8b51ca936ac7ed49c026ba8ef78df9635462b612cd7623a2",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "c44c47473ff79a86b9a1dece68a99baaf1520d3a",
+      "sourcePath": "src/KnowledgeBase/components/CloudGuideShell.tsx",
+      "destinationPath": "src/KnowledgeBase/components/CloudGuideShell.tsx",
+      "sourceSha256": "d79d9967045ee2c7f8060807cea081a669d62f1b4100ce34683c823a8c785e0a",
+      "destinationSha256": "7d8ae6744d8753cc525a4c0ac457b1149e8bf245dfeac54e0a26ba784ce44a1d",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "21e7a626bbc9aed292acb75fa57e1dbd7fc4380c",
+      "sourcePath": "src/KnowledgeBase/components/CodeBlock.tsx",
+      "destinationPath": "src/KnowledgeBase/components/CodeBlock.tsx",
+      "sourceSha256": "181102fc081edb2fcb37f42d55ed39f8d7330faa729fd2e45337978b972494af",
+      "destinationSha256": "181102fc081edb2fcb37f42d55ed39f8d7330faa729fd2e45337978b972494af",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "846ff5ba05a4805d9668cd1559071b02c92ed017",
+      "sourcePath": "src/KnowledgeBase/components/CollapsibleSection.tsx",
+      "destinationPath": "src/KnowledgeBase/components/CollapsibleSection.tsx",
+      "sourceSha256": "11f7a452d208238f2b98c484cf8b54f39542c7e0620c579aedcffa9ba93c9897",
+      "destinationSha256": "11f7a452d208238f2b98c484cf8b54f39542c7e0620c579aedcffa9ba93c9897",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "e7fd6747e02f0c9decc3572e658b0942e6910621",
+      "sourcePath": "src/KnowledgeBase/components/MermaidDiagram.tsx",
+      "destinationPath": "src/KnowledgeBase/components/MermaidDiagram.tsx",
+      "sourceSha256": "792084b18ce7fa8ceee846ed1ef0a52d416c2e382cf6967f66622663093de2ba",
+      "destinationSha256": "792084b18ce7fa8ceee846ed1ef0a52d416c2e382cf6967f66622663093de2ba",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "c9fb04f3a29b5587b2ed4fd971298aaf3e473b14",
+      "sourcePath": "src/KnowledgeBase/components/TabGroup.tsx",
+      "destinationPath": "src/KnowledgeBase/components/TabGroup.tsx",
+      "sourceSha256": "6ec9939d2ac2a0d609db8b86148b754f0f23f19cabf9f2fe11d347354ef4c38a",
+      "destinationSha256": "6ec9939d2ac2a0d609db8b86148b754f0f23f19cabf9f2fe11d347354ef4c38a",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "c2543beb7133fe235e4c1ac5ab0162460671c863",
+      "sourcePath": "src/KnowledgeBase/components/WizardChecklist.tsx",
+      "destinationPath": "src/KnowledgeBase/components/WizardChecklist.tsx",
+      "sourceSha256": "f2bde446b2c05f6ea0b5d1ca6149c6a6d12a1c08739c4c4ee1d1c272c97cf05e",
+      "destinationSha256": "2f266673467a383ba3a5f5f0736b1dff745b2065cce64c33a81a9cd471a81619",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "16d4331f377f0f0683e4ce3b2b55c40befad75dd",
+      "sourcePath": "src/KnowledgeBase/iOSPlaybookGuide.tsx",
+      "destinationPath": "src/KnowledgeBase/iOSPlaybookGuide.tsx",
+      "sourceSha256": "41c8aff3f449eeb15fe684ae503711eb3e1d1de28b14bb17274f2a645c47aafb",
+      "destinationSha256": "89ac06aa11aa974eb31adcbc6d7f8272593193f0f34dc5191b7a4f01c29524f2",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "4ab7f15757890d4c7c84d2e162fb718587807441",
+      "sourcePath": "src/KnowledgeBase/index.tsx",
+      "destinationPath": "src/KnowledgeBase/index.tsx",
+      "sourceSha256": "a59fff262fc1585390defb4029555d65cd19f2a7e174d1e69b82c27310d900a8",
+      "destinationSha256": "5ae971ad83902638e916172d64b1e51ded5169008eadaa94580942bf94c99e1c",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "078c4a5b94680b7f1bb1f6c88b7b8b01e8356b93",
+      "sourcePath": "src/KnowledgeBase/searchIndex.ts",
+      "destinationPath": "src/KnowledgeBase/searchIndex.ts",
+      "sourceSha256": "f750e73fe70e8a654a78d254e2741db34cccf75243522e1935c2dbdb8a6e4845",
+      "destinationSha256": "c7f2da3eba1045db1869c28b9dbc37aef13fc10d88b0484f2fb124de0b460326",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "a94e17ab03e32ce49b274807bb1e50c905721084",
+      "sourcePath": "src/KnowledgeBase/styles/cloudGuide.css",
+      "destinationPath": "src/KnowledgeBase/styles/cloudGuide.css",
+      "sourceSha256": "1fe1571b738754faa41ee948b332ca85062d496e58f1c6bc5018b4b57754e740",
+      "destinationSha256": "1fe1571b738754faa41ee948b332ca85062d496e58f1c6bc5018b4b57754e740",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "4b426848eee09661e7ae2a56dc5fbe9a4e51e178",
+      "sourcePath": "src/KnowledgeBase/styles/warmGuide.css",
+      "destinationPath": "src/KnowledgeBase/styles/warmGuide.css",
+      "sourceSha256": "28a591f4b38975cec70bb04d6c2cddd39a274b9e5f8de231924dac0f0f476c3e",
+      "destinationSha256": "28a591f4b38975cec70bb04d6c2cddd39a274b9e5f8de231924dac0f0f476c3e",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "b62b2a2c1b10029fd9e51b0e340af5c5f23b9829",
+      "sourcePath": "src/KnowledgeBase/useGuideProgress.ts",
+      "destinationPath": "src/KnowledgeBase/useGuideProgress.ts",
+      "sourceSha256": "241b518296a63fe86884aaf6921104ebf836482887453234c1b0a0a58e703261",
+      "destinationSha256": "49ef761ec569f61709deb72cae7a03973b282d6859b9ea6f6f1f4481d8757ee7",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "65b105553df9767dba218765c719bcd103fa7e32",
+      "sourcePath": "src/KnowledgeBase/useGuideSearch.ts",
+      "destinationPath": "src/KnowledgeBase/useGuideSearch.ts",
+      "sourceSha256": "8cb45fcb28e230aea15535afbdf469950b91123b121420f257d0cc1cff242e55",
+      "destinationSha256": "8cb45fcb28e230aea15535afbdf469950b91123b121420f257d0cc1cff242e55",
+      "disposition": "exact-copy"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "5712527e8c1fe0e9b59e61b61d1affcbdfb2f44b",
+      "sourcePath": "src/KnowledgeBase/useGuideTTS.ts",
+      "destinationPath": "src/KnowledgeBase/useGuideTTS.ts",
+      "sourceSha256": "d26f1b2a771ac06980a0fa826a86a2bca276fcd794ab9ca10d8c9e56348b0116",
+      "destinationSha256": "369b27b7cf4aabe3d06054eb43f7d8a20ad4bb76f28d24482b3d6c533b33a6c7",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "2a4deb54d60e54fa2a636d65a894b212120e50fb",
+      "sourcePath": "src/components/PageHero.tsx",
+      "destinationPath": "src/components/PageHero.tsx",
+      "sourceSha256": "1aa0e318d9f079972ee89ce898d4f609c8b5637ecc00a7da44f239824b7b9a91",
+      "destinationSha256": "0669b4b7211b65226c86f9dff2f96c847ba74a5af0e1500bfe8485bd45447727",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "ec526e2b8dfb60d5e93c9c4bc9ac24ef87605b4c",
+      "sourcePath": "src/context/ThemeContext.tsx",
+      "destinationPath": "src/context/ThemeContext.tsx",
+      "sourceSha256": "76384c3d22aff2348a870fc43eba0281023fcd402473f718094bd35d56844e1c",
+      "destinationSha256": "73d1142a750bee706bac696ef2d529d3377ba8072dc1216ab3e8f961e17451b9",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "5b344c292835443f757e5d167fe0594852ede0e9",
+      "sourcePath": "src/theme/controls.ts",
+      "destinationPath": "src/theme/controls.ts",
+      "sourceSha256": "fd9ea14b88033ff8e2de1612e6c90fbb1481c0edb6e0103fb163368cabe1f0bc",
+      "destinationSha256": "2b979c77a7036362e18dbda52be04a8afc92c4e0eab9b0205806dd6411425eba",
+      "disposition": "adapted"
+    },
+    {
+      "mode": "100644",
+      "type": "blob",
+      "sourceBlobOid": "31da8748fcd17caaefc42f1737b970a38c3d2ec1",
+      "sourcePath": "src/theme/tokens.ts",
+      "destinationPath": "src/theme/tokens.ts",
+      "sourceSha256": "79d988d91f05c58442a5411d5d5cb62a67f07655ee617b4252dbaa16b22d6200",
+      "destinationSha256": "205386ef76fb84c954e447288c257f1528a0c145b2ba2f38540d86b3e7c01532",
+      "disposition": "adapted"
+    },
+    {
+      "destinationPath": "src/ExamPrepHub/exams/SAT/adaptiveScore.ts",
+      "destinationSha256": "157776347bfc7d76a888230b0f889a149751bf00cf36b1a4c03b28343e0d879b",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/ExamPrepHub/exams/SAT/practiceAttempt.ts",
+      "destinationSha256": "3c749887b417c8b287cfd9bbc0a9422a174d48d346a548707b7a5d19713326f0",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/ExamPrepHub/exams/SAT/scoreSummary.ts",
+      "destinationSha256": "3937c10e39d7ded8d0300e680dfae398e61ce798a3c7d57f031df01931bff071",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/ExamPrepHub/shared/analogyContent.ts",
+      "destinationSha256": "9db529e251e21c40a31757949ac180824335ff815f1f5c260ea2dbac573069b0",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/ExamPrepHub/shared/eocepSandbox.ts",
+      "destinationSha256": "f2a3bf23ee983209a0ab72f80293b90b98d1e602ac4999357560584220ca4ffb",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/ExamPrepHub/shared/PracticeEmptyState.tsx",
+      "destinationSha256": "63660c2e3693d0e118203d485331e2eaed9ff3a37bdbb91a0aef730626746617",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/KnowledgeBase/guideProgressTracking.ts",
+      "destinationSha256": "5cbeef2c9b1c2668c03e8ee15567efebc5355e4231d0918052c7e2f5ef0ad8ea",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/KnowledgeBase/guideSearchRegistry.ts",
+      "destinationSha256": "7579421656803b0569e7a21741250c3805ae9f19626deb906c7fd4e92d9b8e3c",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/KnowledgeBase/ttsChunks.ts",
+      "destinationSha256": "26bfd7e5a6ad56c505b5ae700ace0aac633360f53a00fb54f85ef62f5707972e",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/KnowledgeBase/ttsCleanup.ts",
+      "destinationSha256": "342cc03a84ae4ecf4ee9739eb3fb74f5d0becdf3e4611bd1c9e3754372299a5e",
+      "disposition": "lantern-support"
+    }
+  ]
+}
