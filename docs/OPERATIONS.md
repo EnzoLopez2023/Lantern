@@ -9,6 +9,8 @@
 - `/api/ready` performs only a bounded schema/version and cheap database query.
 - No integrity scan, backup, repair, or long migration runs during startup or an HTTP request.
 
+For first deployment only, `LANTERN_DB_ALLOW_CREATE=true` permits production startup to create `/home/data/lantern.db` and apply the app schema. Set it back to `false` immediately after the empty authority is confirmed.
+
 The container compiles `better-sqlite3` in a Debian build stage with Python, Make, and g++, runs a native module smoke check there, prunes development dependencies, and copies only production modules into the non-root runtime stage. Compilers are not present in the runtime image.
 
 ## Authentication
