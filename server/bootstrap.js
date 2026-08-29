@@ -82,8 +82,9 @@ export function validateEnvironment(env = process.env) {
     )
   }
   const databasePath = defaultDatabasePath(env, ROOT)
+  const allowDatabaseCreate = env.LANTERN_DB_ALLOW_CREATE === 'true'
   if (env.NODE_ENV === 'production') {
-    if (!existsSync(databasePath)) {
+    if (!existsSync(databasePath) && !allowDatabaseCreate) {
       throw new Error(`Production database does not exist at ${databasePath}`)
     }
     if (!/^[0-9a-f]{40}$/.test(env.BUILD_SHA || '')) {
@@ -107,6 +108,7 @@ export function validateEnvironment(env = process.env) {
     busyTimeoutMs,
     shutdownTimeoutMs,
     databasePath,
+    allowDatabaseCreate,
     bootstrapAdmin: bootstrapTenant ? { tenantId: bootstrapTenant, oid: bootstrapOid } : null,
   }
 }
