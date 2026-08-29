@@ -25,7 +25,7 @@ import {
   type QueuedStorageConflict,
 } from './mutationQueue';
 import {
-  hydrateCacheFromServer,
+  hydrateCapturedIdentity,
   type HydrationRecord,
   type HydrationResult,
 } from './hydrate';
@@ -48,6 +48,11 @@ import {
   durableQueueFailureMessage,
 } from './orderedCacheMutation';
 import { decodeStateTransportValue } from './payloadBounds';
+import { DocumentWriterIdentity, type WriterIdFactory } from './writerIdentity';
+import {
+  resolveObservedWrite,
+  type StorageObservation,
+} from './storageObservation';
 
 export type StorageMutation = QueuedStorageMutation;
 export interface StorageConflictView extends ConflictReference {
@@ -103,7 +108,7 @@ let currentConflictSummary: string | null = null;
 let currentConflicts: StorageConflictView[] = [];
 let resolutionError: string | null = null;
 let lastEnqueuedAt = 0;
-let fallbackClientId: string | null = null;
+let documentWriterIdentity: DocumentWriterIdentity | null = null;
 let status: StorageSyncStatus = {
   pendingCount: 0,
   pendingOverflow: false,
@@ -263,25 +268,20 @@ const createMutationId = (): string => {
   return `lantern-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 };
 
+const defaultWriterId = (): string => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
+  return `client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+export const configureStorageWriterIdFactoryForTests = (
+  factory: WriterIdFactory,
+): void => {
+  documentWriterIdentity = new DocumentWriterIdentity(factory);
+};
+
 const syncClientId = (): string => {
-  const create = (): string => {
-    if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID();
-    return `client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  };
-  try {
-    if (typeof window !== 'undefined') {
-      const key = 'lantern:v1:sync-client-id';
-      const existing = window.sessionStorage.getItem(key);
-      if (existing) return existing;
-      const created = create();
-      window.sessionStorage.setItem(key, created);
-      return created;
-    }
-  } catch {
-    // Fall back to an in-memory ID when session storage is unavailable.
-  }
-  fallbackClientId ??= create();
-  return fallbackClientId;
+  documentWriterIdentity ??= new DocumentWriterIdentity(defaultWriterId);
+  return documentWriterIdentity.id;
 };
 
 const createEnqueuedAt = (): number => {
@@ -468,38 +468,44 @@ export const subscribeStorageSyncStatus = (listener: () => void): (() => void) =
   return () => statusListeners.delete(listener);
 };
 
-export const hydrateScopedStorage = (records: HydrationRecord[]): HydrationResult => {
+export const hydrateScopedStorage = (
+  records: HydrationRecord[],
+  target: StorageIdentity,
+): HydrationResult => {
   const store = backend();
   if (!store) throw new Error('Browser storage is unavailable.');
-  const target = { ...identity };
-  const pendingKeys = new Set([
-    ...readMutationQueue(store, target).map(mutation => mutation.key),
-    ...readConflicts(store, target).map(conflict => conflict.key),
-  ]);
+  const capturedIdentity = { ...target };
   const decodedRecords = records.map(record => ({
     ...record,
     value: record.value === null
       ? null
       : decodeStateTransportValue(record.resourceKey, record.value),
   }));
-  return hydrateCacheFromServer(decodedRecords, {
-    getItem: key => store.getItem(scopedKey(target, key)),
-    setItem: (key, value) => store.setItem(scopedKey(target, key), value),
-    removeItem: key => store.removeItem(scopedKey(target, key)),
-    getRevision: key => getCacheRevision(store, target, key),
-    setRevision: (key, revision) => setCacheRevision(store, target, key, revision),
-  }, pendingKeys);
+  return hydrateCapturedIdentity(decodedRecords, capturedIdentity, {
+    pendingKeys: captured => new Set([
+      ...readMutationQueue(store, captured).map(mutation => mutation.key),
+      ...readConflicts(store, captured).map(conflict => conflict.key),
+    ]),
+    cache: captured => ({
+      getItem: key => store.getItem(scopedKey(captured, key)),
+      setItem: (key, value) => store.setItem(scopedKey(captured, key), value),
+      removeItem: key => store.removeItem(scopedKey(captured, key)),
+      getRevision: key => getCacheRevision(store, captured, key),
+      setRevision: (key, revision) => setCacheRevision(store, captured, key, revision),
+    }),
+  });
 };
 
 const enqueueSyncMutation = (
   store: Storage,
   key: string,
   value: string | null,
+  options?: { baseRevision?: number; linkPredecessor?: boolean },
 ): number | null => {
   const kind = syncKindForKey(key);
   if (!kind) return null;
   const clientId = syncClientId();
-  const predecessor = findLatestCausalPredecessor(
+  const predecessor = options?.linkPredecessor === false ? null : findLatestCausalPredecessor(
     [
       ...readMutationQueue(store, identity),
       ...readConflicts(store, identity),
@@ -514,7 +520,7 @@ const enqueueSyncMutation = (
     key,
     value,
     identity: { ...identity },
-    baseRevision: getCacheRevision(store, identity, key),
+    baseRevision: options?.baseRevision ?? getCacheRevision(store, identity, key),
     clientId,
     predecessorId: predecessor?.id ?? null,
     enqueuedAt: createEnqueuedAt(),
@@ -577,6 +583,54 @@ class LanternStorage {
 
   getItem(key: string): string | null {
     return backend()?.getItem(scopedKey(identity, key)) ?? null;
+  }
+
+  observeItem(key: string): StorageObservation {
+    const store = backend();
+    return {
+      value: store?.getItem(scopedKey(identity, key)) ?? null,
+      revision: store ? getCacheRevision(store, identity, key) : 0,
+    };
+  }
+
+  setItemIfObserved(
+    key: string,
+    value: string,
+    observed: StorageObservation,
+  ): { saved: boolean; observation: StorageObservation } {
+    const store = backend();
+    if (!store) {
+      setPendingStatus(status.pendingCount, 'error', 'Browser storage is unavailable; stale state could not be retained.');
+      return { saved: false, observation: observed };
+    }
+    const currentValue = store.getItem(scopedKey(identity, key));
+    const currentRevision = getCacheRevision(store, identity, key);
+    const decision = resolveObservedWrite(
+      { value: currentValue, revision: currentRevision },
+      observed,
+    );
+    if (decision.canWriteCache) {
+      this.setItem(key, value);
+      return {
+        saved: true,
+        observation: { value: String(value), revision: decision.baseRevision },
+      };
+    }
+    try {
+      const pending = enqueueSyncMutation(store, key, String(value), {
+        baseRevision: observed.revision,
+        linkPredecessor: false,
+      });
+      setPendingStatus(
+        pending ?? status.pendingCount,
+        'error',
+        `A newer local version of ${key} exists. The stale edit was retained for conflict review.`,
+      );
+      if (pending !== null && syncHandler) void drain();
+    } catch (error) {
+      setPendingStatus(status.pendingCount, 'error', durableQueueFailureMessage(error));
+    }
+    return { saved: false, observation: observed };
   }
 
   key(index: number): string | null {

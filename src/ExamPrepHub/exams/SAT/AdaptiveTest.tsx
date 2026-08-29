@@ -33,7 +33,13 @@ import {
   type SATSection,
   type Difficulty,
 } from './questions';
-import { scoreAdaptiveTest, type AdaptiveScoreResults } from './adaptiveScore';
+import {
+  adaptiveResultSummary,
+  countCurrentModuleAnswers,
+  scoreAdaptiveTest,
+  type AdaptiveScoreResults,
+  type AdaptiveTestMode,
+} from './adaptiveScore';
 
 // Configuration matching real SAT structure
 const MODULE_CONFIG = {
@@ -53,6 +59,7 @@ interface TestState {
   mod1Score: number | null; // raw score from module 1
   mod2Difficulty: Difficulty | null;
   presentedQuestionIds: string[];
+  routes: Partial<Record<SATSection, Difficulty>>;
 }
 
 type TestResults = AdaptiveScoreResults;
@@ -112,11 +119,12 @@ export default function AdaptiveTest() {
     mod1Score: null,
     mod2Difficulty: null,
     presentedQuestionIds: [],
+    routes: {},
   });
 
   const [results, setResults] = useState<TestResults | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [testType, setTestType] = useState<'full' | 'rw-only' | 'math-only'>('full');
+  const [testType, setTestType] = useState<AdaptiveTestMode>('full');
 
   // Timer
   useEffect(() => {
@@ -158,6 +166,7 @@ export default function AdaptiveTest() {
       mod1Score: null,
       mod2Difficulty: null,
       presentedQuestionIds: questions.map(question => question.id),
+      routes: {},
     });
   }, [testType]);
 
@@ -199,6 +208,7 @@ export default function AdaptiveTest() {
         phase: 'break',
         mod1Score: correct,
         mod2Difficulty: mod2Diff,
+        routes: { ...prev.routes, [section]: mod2Diff },
         questions: mod2Questions,
         presentedQuestionIds: [
           ...prev.presentedQuestionIds,
@@ -251,6 +261,7 @@ export default function AdaptiveTest() {
       [...rwQuestions, ...mathQuestions],
       state.presentedQuestionIds,
       state.answers,
+      state.routes,
     ));
     setState(prev => ({ ...prev, phase: 'results' }));
   };
@@ -356,30 +367,25 @@ export default function AdaptiveTest() {
   }
 
   if (state.phase === 'results' && results) {
+    const summary = adaptiveResultSummary(testType, results);
     return (
       <Stack spacing={3}>
         <Paper elevation={0} sx={{ p: 4, borderRadius: 2, bgcolor: CARD_BG, border: `1px solid ${BORDER}`, textAlign: 'center' }}>
           <Typography variant="h4" fontWeight={700} sx={{ color: TEXT_PRI, mb: 1 }}>
-            Your SAT Score
+            {summary.heading}
           </Typography>
           <Typography variant="h2" fontWeight={800} sx={{ color: ACCENT, mb: 2 }}>
-            {results.totalScaled}
+            {summary.score}
           </Typography>
-          <Typography variant="body2" sx={{ color: TEXT_SEC, mb: 3 }}>out of 1600</Typography>
+          <Typography variant="body2" sx={{ color: TEXT_SEC, mb: 3 }}>out of {summary.maxScore}</Typography>
 
           <Stack direction="row" justifyContent="center" spacing={4} sx={{ mb: 3 }}>
-            {results.rwScaled > 0 && (
-              <Box>
-                <Typography variant="h5" fontWeight={700} sx={{ color: TEXT_PRI }}>{results.rwScaled}</Typography>
-                <Typography variant="caption" sx={{ color: TEXT_SEC }}>Reading & Writing</Typography>
+            {summary.sectionScores.map(sectionScore => (
+              <Box key={sectionScore.label}>
+                <Typography variant="h5" fontWeight={700} sx={{ color: TEXT_PRI }}>{sectionScore.score}</Typography>
+                <Typography variant="caption" sx={{ color: TEXT_SEC }}>{sectionScore.label}</Typography>
               </Box>
-            )}
-            {results.mathScaled > 0 && (
-              <Box>
-                <Typography variant="h5" fontWeight={700} sx={{ color: TEXT_PRI }}>{results.mathScaled}</Typography>
-                <Typography variant="caption" sx={{ color: TEXT_SEC }}>Math</Typography>
-              </Box>
-            )}
+            ))}
           </Stack>
         </Paper>
 
@@ -419,7 +425,7 @@ export default function AdaptiveTest() {
         <Button
           variant="outlined"
           onClick={() => {
-            setState({ phase: 'setup', section: 'reading-writing', module: 1, questions: [], currentIndex: 0, answers: {}, flagged: new Set(), timeRemaining: 0, mod1Score: null, mod2Difficulty: null, presentedQuestionIds: [] });
+            setState({ phase: 'setup', section: 'reading-writing', module: 1, questions: [], currentIndex: 0, answers: {}, flagged: new Set(), timeRemaining: 0, mod1Score: null, mod2Difficulty: null, presentedQuestionIds: [], routes: {} });
             setResults(null);
           }}
           sx={{ color: ACCENT, borderColor: ACCENT, textTransform: 'none' }}
@@ -574,7 +580,7 @@ export default function AdaptiveTest() {
         <DialogTitle>Submit Module {state.module}?</DialogTitle>
         <DialogContent>
           <Typography variant="body2">
-            {Object.keys(state.answers).length} of {state.questions.length} questions answered.
+            {countCurrentModuleAnswers(state.questions, state.answers)} of {state.questions.length} questions answered.
             {state.flagged.size > 0 && ` ${state.flagged.size} flagged for review.`}
           </Typography>
         </DialogContent>

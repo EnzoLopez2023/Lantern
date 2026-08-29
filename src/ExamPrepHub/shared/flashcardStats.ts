@@ -25,15 +25,26 @@ export interface FlashcardStat {
 }
 
 export type FlashcardStatsMap = Record<string, FlashcardStat>;
+const observations = new WeakMap<FlashcardStatsMap, { value: string | null; revision: number }>();
+
+const bindObservation = (
+  stats: FlashcardStatsMap,
+  observation: { value: string | null; revision: number },
+): FlashcardStatsMap => {
+  observations.set(stats, observation);
+  return stats;
+};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function loadFlashcardStats(examId: string): FlashcardStatsMap {
   try {
-    const raw = localStorage.getItem(storageKey(examId));
+    const key = storageKey(examId);
+    const observation = localStorage.observeItem(key);
+    const raw = observation.value;
     if (raw) {
       const parsed = JSON.parse(raw);
-      return typeof parsed === 'object' && parsed ? parsed : {};
+      return bindObservation(typeof parsed === 'object' && parsed ? parsed : {}, observation);
     }
     if (examId === 'AI901') {
       const legacy = localStorage.getItem(LEGACY_AI901_KEY);
@@ -42,20 +53,31 @@ export function loadFlashcardStats(examId: string): FlashcardStatsMap {
           const parsed = JSON.parse(legacy);
           if (parsed && typeof parsed === 'object') {
             localStorage.setItem(storageKey(examId), legacy);
-            return parsed;
+            return bindObservation(parsed, localStorage.observeItem(key));
           }
         } catch { /* fall through to {} */ }
       }
     }
-    return {};
+    return bindObservation({}, observation);
   } catch {
-    return {};
+    return bindObservation({}, { value: null, revision: 0 });
   }
 }
 
 export function saveFlashcardStats(examId: string, stats: FlashcardStatsMap) {
   try {
-    localStorage.setItem(storageKey(examId), JSON.stringify(stats));
+    const key = storageKey(examId);
+    const value = JSON.stringify(stats);
+    const observed = observations.get(stats);
+    if (observed) {
+      const result = localStorage.setItemIfObserved(key, value, observed);
+      if (result.saved) {
+        bindObservation(stats, result.observation);
+      }
+      return;
+    }
+    localStorage.setItem(key, value);
+    bindObservation(stats, localStorage.observeItem(key));
   } catch {
     // ignore
   }
@@ -95,7 +117,10 @@ export function recordFlashcardRating(
     nextReviewAt: now + interval * DAY_MS,
     lastReviewedAt: now,
   };
-  return { ...stats, [cardId]: next };
+  const result = { ...stats, [cardId]: next };
+  const observation = observations.get(stats);
+  if (observation) bindObservation(result, observation);
+  return result;
 }
 
 // Cards due now (or never reviewed yet)

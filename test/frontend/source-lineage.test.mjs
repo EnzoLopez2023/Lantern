@@ -10,7 +10,7 @@ test('source lineage covers every pinned destination at its recorded hash', asyn
   assert.equal(manifest.contract, 'lantern.source-lineage.v1');
   assert.equal(manifest.source.commit, 'f0b05fc1dbf53e8aa26c215d8e858894a2793871');
   assert.equal(manifest.summary.sourceFiles, 225);
-  assert.equal(manifest.summary.lanternSupport, 7);
+  assert.equal(manifest.summary.lanternSupport, 10);
   assert.equal(
     manifest.summary.exactCopies + manifest.summary.adapted + manifest.summary.lanternSupport,
     manifest.summary.files,

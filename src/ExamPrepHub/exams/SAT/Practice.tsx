@@ -1,7 +1,7 @@
 // SAT Practice Mode — free-form drilling with domain/difficulty filters.
 // Reuses the shared drillStats infrastructure for spaced repetition.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Box,
   Button,
@@ -54,6 +54,8 @@ import {
 } from '../../shared/drillStats';
 import { loadBookmarks, toggleBookmark } from '../../shared/bookmarks';
 import { loadNote, saveNote } from '../../shared/notes';
+import { PracticeEmptyState } from '../../shared/PracticeEmptyState';
+import { canLeavePracticeQuestion, shouldRecordPracticeConfidence } from './practiceAttempt';
 
 type Mode = 'browse' | 'adaptive' | 'weak' | 'due' | 'bookmarks';
 const EXAM_ID = 'SAT';
@@ -90,6 +92,7 @@ export default function Practice() {
   const [bookmarks, setBookmarks] = useState<Set<string>>(() => new Set(loadBookmarks(EXAM_ID, 'question')));
   const [noteText, setNoteText] = useState('');
   const [showNote, setShowNote] = useState(false);
+  const confidenceRecordedRef = useRef(false);
 
   // Build queue when mode/filters change
   useEffect(() => {
@@ -126,6 +129,7 @@ export default function Practice() {
     setConfidence(null);
     setShowExplanation(false);
     setShowNote(false);
+    confidenceRecordedRef.current = false;
   };
 
   const currentQ = queue[index];
@@ -142,7 +146,11 @@ export default function Practice() {
   };
 
   const handleConfidence = (conf: Confidence) => {
-    if (!currentQ) return;
+    if (
+      !currentQ
+      || !shouldRecordPracticeConfidence(submitted, conf, confidenceRecordedRef.current)
+    ) return;
+    confidenceRecordedRef.current = true;
     setConfidence(conf);
     const isCorrect = currentQ.correctAnswers.includes(selected!);
     const newStats = recordAnswer(stats, currentQ.id, isCorrect, conf);
@@ -151,6 +159,7 @@ export default function Practice() {
   };
 
   const handleNext = () => {
+    if (!canLeavePracticeQuestion(submitted, confidence)) return;
     if (index < queue.length - 1) {
       setIndex(index + 1);
       resetQuestion();
@@ -158,6 +167,7 @@ export default function Practice() {
   };
 
   const handlePrev = () => {
+    if (!canLeavePracticeQuestion(submitted, confidence)) return;
     if (index > 0) {
       setIndex(index - 1);
       resetQuestion();
@@ -170,18 +180,95 @@ export default function Practice() {
     setBookmarks(new Set(loadBookmarks(EXAM_ID, 'question')));
   };
 
+  const showAllQuestions = () => {
+    setMode('browse');
+    setSectionFilter('all');
+    setDomainFilter('all');
+    setDifficultyFilter('all');
+  };
+
+  const controls = (
+    <Paper elevation={0} sx={{ p: 2, borderRadius: 2, bgcolor: CARD_BG, border: `1px solid ${BORDER}` }}>
+      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
+        <FormControl size="small" sx={{ minWidth: 130 }}>
+          <InputLabel sx={{ color: TEXT_SEC }}>Mode</InputLabel>
+          <Select disabled={!canLeavePracticeQuestion(submitted, confidence)} value={mode} label="Mode" onChange={e => setMode(e.target.value as Mode)} sx={{ color: TEXT_PRI }}>
+            <MenuItem value="browse">Browse</MenuItem>
+            <MenuItem value="adaptive">Adaptive</MenuItem>
+            <MenuItem value="weak">Weak Spots</MenuItem>
+            <MenuItem value="due">Due ({dueCount})</MenuItem>
+            <MenuItem value="bookmarks">Bookmarks</MenuItem>
+          </Select>
+        </FormControl>
+
+        {mode === 'browse' && (
+          <>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel sx={{ color: TEXT_SEC }}>Section</InputLabel>
+              <Select disabled={!canLeavePracticeQuestion(submitted, confidence)} value={sectionFilter} label="Section" onChange={e => { setSectionFilter(e.target.value as SATSection | 'all'); setDomainFilter('all'); }} sx={{ color: TEXT_PRI }}>
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="reading-writing">Reading & Writing</MenuItem>
+                <MenuItem value="math">Math</MenuItem>
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 160 }}>
+              <InputLabel sx={{ color: TEXT_SEC }}>Domain</InputLabel>
+              <Select disabled={!canLeavePracticeQuestion(submitted, confidence)} value={domainFilter} label="Domain" onChange={e => setDomainFilter(e.target.value as SATDomain | 'all')} sx={{ color: TEXT_PRI }}>
+                <MenuItem value="all">All Domains</MenuItem>
+                {Object.entries(DOMAIN_META)
+                  .filter(([, m]) => sectionFilter === 'all' || m.section === sectionFilter)
+                  .map(([key, m]) => (
+                    <MenuItem key={key} value={key}>{m.label}</MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 110 }}>
+              <InputLabel sx={{ color: TEXT_SEC }}>Difficulty</InputLabel>
+              <Select disabled={!canLeavePracticeQuestion(submitted, confidence)} value={difficultyFilter} label="Difficulty" onChange={e => setDifficultyFilter(e.target.value as Difficulty | 'all')} sx={{ color: TEXT_PRI }}>
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="easy">Easy</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="hard">Hard</MenuItem>
+              </Select>
+            </FormControl>
+          </>
+        )}
+
+        <Box sx={{ flex: 1 }} />
+        <Typography variant="body2" sx={{ color: TEXT_SEC }}>
+          {queue.length} questions • {Math.round(accuracy * 100)}% accuracy
+        </Typography>
+      </Stack>
+    </Paper>
+  );
+
   if (!currentQ) {
     return (
-      <Paper elevation={0} sx={{ p: 4, borderRadius: 2, bgcolor: CARD_BG, border: `1px solid ${BORDER}`, textAlign: 'center' }}>
-        <Typography variant="h6" sx={{ color: TEXT_PRI, mb: 2 }}>
-          {mode === 'bookmarks' ? '📚 No bookmarked questions yet' :
-           mode === 'due' ? '✅ No questions due for review!' :
-           '🎉 No questions match your filters'}
-        </Typography>
-        <Typography variant="body2" sx={{ color: TEXT_SEC }}>
-          {mode === 'due' ? 'Great job! Come back later for spaced repetition.' : 'Try changing your filters or mode.'}
-        </Typography>
-      </Paper>
+      <Stack spacing={2}>
+        {controls}
+        <PracticeEmptyState
+          mode={mode}
+          dueCount={dueCount}
+          onModeChange={nextMode => {
+            if (nextMode !== 'daily') setMode(nextMode);
+          }}
+          onBrowseAll={showAllQuestions}
+          showModeSelector={false}
+          title={mode === 'bookmarks'
+            ? 'No bookmarked questions yet'
+            : mode === 'due'
+              ? 'No questions are due for review'
+              : 'No questions match your filters'}
+          description={mode === 'due'
+            ? 'Great job. Choose another mode now, or return later for spaced repetition.'
+            : 'Change the controls above, or browse all questions to continue.'}
+          cardBackground={CARD_BG}
+          borderColor={BORDER}
+          textColor={TEXT_PRI}
+          secondaryTextColor={TEXT_SEC}
+          accentColor={ACCENT}
+        />
+      </Stack>
     );
   }
 
@@ -190,58 +277,7 @@ export default function Practice() {
   return (
     <Stack spacing={2}>
       {/* Controls */}
-      <Paper elevation={0} sx={{ p: 2, borderRadius: 2, bgcolor: CARD_BG, border: `1px solid ${BORDER}` }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
-          <FormControl size="small" sx={{ minWidth: 130 }}>
-            <InputLabel sx={{ color: TEXT_SEC }}>Mode</InputLabel>
-            <Select value={mode} label="Mode" onChange={e => setMode(e.target.value as Mode)} sx={{ color: TEXT_PRI }}>
-              <MenuItem value="browse">Browse</MenuItem>
-              <MenuItem value="adaptive">Adaptive</MenuItem>
-              <MenuItem value="weak">Weak Spots</MenuItem>
-              <MenuItem value="due">Due ({dueCount})</MenuItem>
-              <MenuItem value="bookmarks">Bookmarks</MenuItem>
-            </Select>
-          </FormControl>
-
-          {mode === 'browse' && (
-            <>
-              <FormControl size="small" sx={{ minWidth: 120 }}>
-                <InputLabel sx={{ color: TEXT_SEC }}>Section</InputLabel>
-                <Select value={sectionFilter} label="Section" onChange={e => { setSectionFilter(e.target.value as any); setDomainFilter('all'); }} sx={{ color: TEXT_PRI }}>
-                  <MenuItem value="all">All</MenuItem>
-                  <MenuItem value="reading-writing">Reading & Writing</MenuItem>
-                  <MenuItem value="math">Math</MenuItem>
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ minWidth: 160 }}>
-                <InputLabel sx={{ color: TEXT_SEC }}>Domain</InputLabel>
-                <Select value={domainFilter} label="Domain" onChange={e => setDomainFilter(e.target.value as any)} sx={{ color: TEXT_PRI }}>
-                  <MenuItem value="all">All Domains</MenuItem>
-                  {Object.entries(DOMAIN_META)
-                    .filter(([, m]) => sectionFilter === 'all' || m.section === sectionFilter)
-                    .map(([key, m]) => (
-                      <MenuItem key={key} value={key}>{m.label}</MenuItem>
-                    ))}
-                </Select>
-              </FormControl>
-              <FormControl size="small" sx={{ minWidth: 110 }}>
-                <InputLabel sx={{ color: TEXT_SEC }}>Difficulty</InputLabel>
-                <Select value={difficultyFilter} label="Difficulty" onChange={e => setDifficultyFilter(e.target.value as any)} sx={{ color: TEXT_PRI }}>
-                  <MenuItem value="all">All</MenuItem>
-                  <MenuItem value="easy">Easy</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="hard">Hard</MenuItem>
-                </Select>
-              </FormControl>
-            </>
-          )}
-
-          <Box sx={{ flex: 1 }} />
-          <Typography variant="body2" sx={{ color: TEXT_SEC }}>
-            {queue.length} questions • {Math.round(accuracy * 100)}% accuracy
-          </Typography>
-        </Stack>
-      </Paper>
+      {controls}
 
       {/* Question card */}
       <Paper elevation={0} sx={{ p: 3, borderRadius: 2, bgcolor: CARD_BG, border: `1px solid ${BORDER}` }}>
@@ -338,8 +374,10 @@ export default function Practice() {
           <Stack spacing={2} sx={{ mt: 2 }}>
             {/* Confidence */}
             {!confidence && (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Typography variant="body2" sx={{ color: TEXT_SEC }}>How confident were you?</Typography>
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                <Typography variant="body2" sx={{ color: TEXT_SEC }}>
+                  Choose confidence to save this result and continue.
+                </Typography>
                 {CONFIDENCE_OPTIONS.map(c => (
                   <Chip
                     key={c.id}
@@ -397,7 +435,7 @@ export default function Practice() {
       <Stack direction="row" justifyContent="space-between">
         <Button
           startIcon={<PrevIcon />}
-          disabled={index === 0}
+          disabled={index === 0 || !canLeavePracticeQuestion(submitted, confidence)}
           onClick={handlePrev}
           sx={{ color: TEXT_SEC, textTransform: 'none' }}
         >
@@ -405,7 +443,7 @@ export default function Practice() {
         </Button>
         <Button
           endIcon={<NextIcon />}
-          disabled={index >= queue.length - 1}
+          disabled={index >= queue.length - 1 || !canLeavePracticeQuestion(submitted, confidence)}
           onClick={handleNext}
           sx={{ color: TEXT_SEC, textTransform: 'none' }}
         >

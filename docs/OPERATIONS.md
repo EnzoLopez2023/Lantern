@@ -13,7 +13,7 @@ The container compiles `better-sqlite3` in a Debian build stage with Python, Mak
 
 ## Authentication
 
-The browser obtains an app-audience access token through MSAL. The server validates signature, issuer, tenant, audience, lifetime, GUID-shaped `oid`, `idtyp=user`, and the exact configured delegated `scp`. App-only or roles-only tokens cannot acquire the default user role. Data identity is `(tenant_id, oid)`; email and display name are descriptive only.
+The browser obtains an app-audience access token through MSAL. The server validates signature, issuer, tenant, audience, lifetime, GUID-shaped `oid`, and the exact configured delegated `scp`; optional `idtyp=app` and roles-only tokens are rejected. App-only tokens cannot acquire the default user role. Data identity is `(tenant_id, oid)`; email and display name are descriptive only.
 
 Development auth bypass requires development mode, explicit server/client flags, and GUID-valued `DEV_AUTH_TENANT_ID`/`DEV_AUTH_OID`. It derives identity only from those development values and does not require Azure configuration. Production rejects it.
 

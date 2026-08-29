@@ -66,6 +66,19 @@ export function requireGuid(value, name) {
   return normalized
 }
 
+export function legacySavedPosition(row) {
+  return {
+    sectionIndex: row.section_index,
+    sentenceIndex: row.sentence_index,
+    title: row.section_title,
+    timestamp: Date.parse(
+      /(?:Z|[+-]\d\d:\d\d)$/.test(row.updated_at)
+        ? row.updated_at
+        : `${row.updated_at.replace(' ', 'T')}Z`,
+    ),
+  }
+}
+
 export async function sha256File(path) {
   const hash = createHash('sha256')
   for await (const chunk of createReadStream(path)) hash.update(chunk)

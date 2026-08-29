@@ -65,3 +65,18 @@ export const hydrateCacheFromServer = (
 
   return result;
 };
+
+export interface CapturedIdentityHydrationAdapter<Identity> {
+  pendingKeys(identity: Identity): ReadonlySet<string>;
+  cache(identity: Identity): HydrationCache;
+}
+
+export const hydrateCapturedIdentity = <Identity>(
+  records: HydrationRecord[],
+  capturedIdentity: Identity,
+  adapter: CapturedIdentityHydrationAdapter<Identity>,
+): HydrationResult => hydrateCacheFromServer(
+  records,
+  adapter.cache(capturedIdentity),
+  adapter.pendingKeys(capturedIdentity),
+);

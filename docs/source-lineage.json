@@ -1,6 +1,6 @@
 {
   "contract": "lantern.source-lineage.v1",
-  "generatedAt": "2026-08-28T21:56:39.396Z",
+  "generatedAt": "2026-08-28T23:16:04.219Z",
   "source": {
     "repository": "EnzoLopez2023/Hearth",
     "version": "2.13.2",
@@ -10,11 +10,11 @@
     "imageDigest": "sha256:dc4df7e0f966be5b0608e71643d316cc5eba7590b8e56cec482583ab69443140"
   },
   "summary": {
-    "files": 232,
+    "files": 235,
     "sourceFiles": 225,
-    "exactCopies": 110,
-    "adapted": 115,
-    "lanternSupport": 7
+    "exactCopies": 109,
+    "adapted": 116,
+    "lanternSupport": 10
   },
   "files": [
     {
@@ -54,7 +54,7 @@
       "sourcePath": "src/ExamPrepHub/exams/ALG1/ExamSandbox.tsx",
       "destinationPath": "src/ExamPrepHub/exams/ALG1/ExamSandbox.tsx",
       "sourceSha256": "66d96ed0b0b60838f68b058f0212e77c9e5bc368be7fd39053562bdae8774eeb",
-      "destinationSha256": "c80fbdd0dfd4fea17835c8abdf45fdbbca47d776dbef3421c3584a05f80836ee",
+      "destinationSha256": "6e7a31ca4a2fa2e177df8c84107b621cb9c9d18ac7ff916d86dcb4d205a9378a",
       "disposition": "adapted"
     },
     {
@@ -254,7 +254,7 @@
       "sourcePath": "src/ExamPrepHub/exams/BIO1/ExamSandbox.tsx",
       "destinationPath": "src/ExamPrepHub/exams/BIO1/ExamSandbox.tsx",
       "sourceSha256": "6bc139d2de4dbf8a87cec0c7becd90bdcdf4f4850bffd7a19ee2b7ea43943f71",
-      "destinationSha256": "94553d959b71550e89c7e7b79bf832328a28ba07773a2741adff5330c9b98f1b",
+      "destinationSha256": "a132d0e50d539a1191accca95448c8b335c95545b7e15a71f2963016bab4c7c8",
       "disposition": "adapted"
     },
     {
@@ -454,7 +454,7 @@
       "sourcePath": "src/ExamPrepHub/exams/ENG2/ExamSandbox.tsx",
       "destinationPath": "src/ExamPrepHub/exams/ENG2/ExamSandbox.tsx",
       "sourceSha256": "3f0b23ed4c11b6489eb49dbd6d86e6994432412c3e8d963d47223c7bfc125f0c",
-      "destinationSha256": "322a17cc81aa95d74b9af5cf02c18d384b7801adbd8733cb64bb17fc54474434",
+      "destinationSha256": "4a9bdb5c27df4d1c45d752cb1c71a4e36fc2e089dccbea17d3df40c9a837c38f",
       "disposition": "adapted"
     },
     {
@@ -1094,7 +1094,7 @@
       "sourcePath": "src/ExamPrepHub/exams/SAT/AdaptiveTest.tsx",
       "destinationPath": "src/ExamPrepHub/exams/SAT/AdaptiveTest.tsx",
       "sourceSha256": "6a9501b82e863b8c2566e2c9617afe3ff0f272fe48e9783ed7185165ff51fe60",
-      "destinationSha256": "204866e746d1b0fc2276bb1d839d85cc5ff98f8797820a6a91ac0159a4700151",
+      "destinationSha256": "f806f63cbc623041e7172f31f1da1501241515ea6761f5235bb7e9f06abfd0cb",
       "disposition": "adapted"
     },
     {
@@ -1114,7 +1114,7 @@
       "sourcePath": "src/ExamPrepHub/exams/SAT/Practice.tsx",
       "destinationPath": "src/ExamPrepHub/exams/SAT/Practice.tsx",
       "sourceSha256": "0c34d991694e6e89970e36190103cc5e84516eea8b66e60937582552933e2c06",
-      "destinationSha256": "faa8acf34872a510d0d21369b8468a98c8160a1d6908ab70f59b363764fc4c6c",
+      "destinationSha256": "139096eeba41968e726c92d179ba0bf808d9f9d862f4c52b04aa4a903559cdc0",
       "disposition": "adapted"
     },
     {
@@ -1354,7 +1354,7 @@
       "sourcePath": "src/ExamPrepHub/exams/USHC/ExamSandbox.tsx",
       "destinationPath": "src/ExamPrepHub/exams/USHC/ExamSandbox.tsx",
       "sourceSha256": "f19c7a34281aad049f40e92c9846c16c4ee3e8f4dd8c8f2dc96aea7d4846ffe9",
-      "destinationSha256": "9725cdd8add3f072e56b857cb20ccd703c46720982d486e05a2db04c4f19c6c8",
+      "destinationSha256": "787e5b5af6014a0c65a2a9ac218c4e78ea34ffafcd4b1cd0ff0c755885fae734",
       "disposition": "adapted"
     },
     {
@@ -1504,7 +1504,7 @@
       "sourcePath": "src/ExamPrepHub/shared/drillStats.ts",
       "destinationPath": "src/ExamPrepHub/shared/drillStats.ts",
       "sourceSha256": "71679cf2d2ab2eb575a3286eb715e515740ffdcd8ea7d19b085971d4c5cc7bad",
-      "destinationSha256": "a1a4aa5801a80fde720fba96af2adac7cc301c5977272ef1335895aedf0d64f6",
+      "destinationSha256": "240b7b60f10ea7b9f600c69e460d2f16ac5bb5f3a82629fc8808978343612c6e",
       "disposition": "adapted"
     },
     {
@@ -1514,7 +1514,7 @@
       "sourcePath": "src/ExamPrepHub/shared/flashcardStats.ts",
       "destinationPath": "src/ExamPrepHub/shared/flashcardStats.ts",
       "sourceSha256": "024bceafa5dc73606cf7cecc761002cd77befbd82c4372bc9ccf3285989155b0",
-      "destinationSha256": "f8fa37db0e4a0d4b897134b09c788e95473eed6687b28eb50aa93faf2708bc55",
+      "destinationSha256": "5e4be13d4aab6cd1e8a409ea2dcd2ec22bab26ed7d503ae69c1b8fafc6d5c4b5",
       "disposition": "adapted"
     },
     {
@@ -2204,8 +2204,8 @@
       "sourcePath": "src/KnowledgeBase/useGuideProgress.ts",
       "destinationPath": "src/KnowledgeBase/useGuideProgress.ts",
       "sourceSha256": "241b518296a63fe86884aaf6921104ebf836482887453234c1b0a0a58e703261",
-      "destinationSha256": "241b518296a63fe86884aaf6921104ebf836482887453234c1b0a0a58e703261",
-      "disposition": "exact-copy"
+      "destinationSha256": "49ef761ec569f61709deb72cae7a03973b282d6859b9ea6f6f1f4481d8757ee7",
+      "disposition": "adapted"
     },
     {
       "mode": "100644",
@@ -2269,7 +2269,12 @@
     },
     {
       "destinationPath": "src/ExamPrepHub/exams/SAT/adaptiveScore.ts",
-      "destinationSha256": "cf38791a536cac4b0a2db63c4b785f0eaa8fbc0c66e553cd09600f4936b30eb5",
+      "destinationSha256": "157776347bfc7d76a888230b0f889a149751bf00cf36b1a4c03b28343e0d879b",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/ExamPrepHub/exams/SAT/practiceAttempt.ts",
+      "destinationSha256": "3c749887b417c8b287cfd9bbc0a9422a174d48d346a548707b7a5d19713326f0",
       "disposition": "lantern-support"
     },
     {
@@ -2283,8 +2288,18 @@
       "disposition": "lantern-support"
     },
     {
+      "destinationPath": "src/ExamPrepHub/shared/eocepSandbox.ts",
+      "destinationSha256": "f2a3bf23ee983209a0ab72f80293b90b98d1e602ac4999357560584220ca4ffb",
+      "disposition": "lantern-support"
+    },
+    {
       "destinationPath": "src/ExamPrepHub/shared/PracticeEmptyState.tsx",
-      "destinationSha256": "c88879dada8ae8b160a84950bdc6495e4495ebf7f0b87e67388251860729c8bf",
+      "destinationSha256": "63660c2e3693d0e118203d485331e2eaed9ff3a37bdbb91a0aef730626746617",
+      "disposition": "lantern-support"
+    },
+    {
+      "destinationPath": "src/KnowledgeBase/guideProgressTracking.ts",
+      "destinationSha256": "5cbeef2c9b1c2668c03e8ee15567efebc5355e4231d0918052c7e2f5ef0ad8ea",
       "disposition": "lantern-support"
     },
     {

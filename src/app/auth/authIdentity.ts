@@ -23,3 +23,29 @@ export const storageIdentityForAccount = (
 export const storageIdentityKey = (
   identity: { tenant: string; oid: string } | null,
 ): string | null => identity ? `${identity.tenant}\u0000${identity.oid}` : null;
+
+export const isCurrentHydrationRequest = (
+  capturedIdentityKey: string,
+  capturedGeneration: number,
+  currentGeneration: number,
+  currentIdentityKey: string | null,
+): boolean => capturedGeneration === currentGeneration
+  && capturedIdentityKey === currentIdentityKey;
+
+export interface HydrationActivation {
+  key: string;
+  generation: number;
+}
+
+export const isHydrationActivationReady = (
+  currentKey: string | null,
+  currentGeneration: number,
+  configured: HydrationActivation | null,
+  hydrated: HydrationActivation | null,
+): boolean => Boolean(
+  currentKey
+  && configured?.key === currentKey
+  && configured.generation === currentGeneration
+  && hydrated?.key === currentKey
+  && hydrated.generation === currentGeneration,
+);

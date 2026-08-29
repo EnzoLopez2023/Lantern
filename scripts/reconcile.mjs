@@ -3,6 +3,7 @@ import { writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { openDatabase } from '../lib/database.js'
+import { kbProgressResourceKey } from '../lib/user-state-keys.js'
 import {
   SOURCE_ORACLES,
   SOURCE_PRODUCT_SHA256,
@@ -15,10 +16,12 @@ import {
   requireGuid,
   LEGACY_SOURCE_SHA256,
   LEGACY_SOURCE_SIZE,
+  legacySavedPosition,
 } from './legacy-lib.mjs'
 import {
   assertPathAbsent,
   cleanupPrivateStage,
+  closePublicationOwnership,
   createPrivateStage,
   ensureSecureDirectoryChain,
   fsyncPrivateStageFile,
@@ -44,6 +47,87 @@ function tableObservedHash(table, canonical) {
 
 function sameJson(left, right) {
   return JSON.stringify(left) === JSON.stringify(right)
+}
+
+const PROGRESS_STATE_COLUMNS = [
+  'tenant_id',
+  'oid',
+  'resource_type',
+  'resource_key',
+  'revision',
+  'value_json',
+  'tombstone',
+  'mutation_id',
+  'updated_at',
+  'change_sequence',
+]
+
+function progressStateRows(db, table) {
+  return db.prepare(`
+    SELECT ${PROGRESS_STATE_COLUMNS.join(', ')}
+    FROM ${table}
+    WHERE resource_type = 'progress'
+      AND resource_key LIKE 'kb-tts-progress:%'
+    ORDER BY tenant_id, oid, resource_key, change_sequence
+  `).all()
+}
+
+function progressStateEvidence(expected, target, tenantId, oid) {
+  const key = (row) => [
+    row.tenant_id,
+    row.oid,
+    row.resource_type,
+    row.resource_key,
+  ]
+  const expectedKeys = expected.map(key)
+  const targetKeys = target.map(key)
+  const expectedByKey = new Map(expected.map((row) => [JSON.stringify(key(row)), row]))
+  const targetByKey = new Map(target.map((row) => [JSON.stringify(key(row)), row]))
+  const missingResourceKeys = [...expectedByKey.keys()]
+    .filter((value) => !targetByKey.has(value))
+    .map((value) => JSON.parse(value))
+  const extraResourceKeys = [...targetByKey.keys()]
+    .filter((value) => !expectedByKey.has(value))
+    .map((value) => JSON.parse(value))
+  const mismatchedResourceKeys = [...expectedByKey.entries()]
+    .filter(([value, row]) =>
+      targetByKey.has(value) && !sameJson(row, targetByKey.get(value)))
+    .map(([value]) => JSON.parse(value))
+  const wrongOwnerCount = target.filter((row) =>
+    row.tenant_id !== tenantId || row.oid !== oid).length
+  return {
+    expectedCount: expected.length,
+    targetCount: target.length,
+    wrongOwnerCount,
+    expectedResourceKeyHash: hashJson(expectedKeys),
+    targetResourceKeyHash: hashJson(targetKeys),
+    expectedRowHash: hashJson(expected.map((row) =>
+      PROGRESS_STATE_COLUMNS.map((column) => row[column]))),
+    targetRowHash: hashJson(target.map((row) =>
+      PROGRESS_STATE_COLUMNS.map((column) => row[column]))),
+    expectedChangeSequences: expected.map(({ change_sequence }) => change_sequence),
+    targetChangeSequences: target.map(({ change_sequence }) => change_sequence),
+    missingResourceKeys,
+    extraResourceKeys,
+    mismatchedResourceKeys,
+    match: wrongOwnerCount === 0 && sameJson(expected, target),
+  }
+}
+
+function expectedProgressState(sourceDb, tenantId, oid) {
+  return sourceDb.prepare('SELECT * FROM kb_tts_progress ORDER BY guide_id').all()
+    .map((row, index) => ({
+      tenant_id: tenantId,
+      oid,
+      resource_type: 'progress',
+      resource_key: kbProgressResourceKey(row.guide_id),
+      revision: 1,
+      value_json: JSON.stringify(JSON.stringify(legacySavedPosition(row))),
+      tombstone: 0,
+      mutation_id: `legacy-kb-progress:${row.guide_id}`,
+      updated_at: row.updated_at,
+      change_sequence: index + 1,
+    }))
 }
 
 export async function reconcileLegacy({
@@ -98,6 +182,15 @@ export async function reconcileLegacy({
     db = openImmutableSource(stagedTarget.stagedPath)
     assertSourceSchema(sourceDb)
 
+    const legacyProgressOwnership = db.prepare(`
+      SELECT
+        COUNT(*) AS totalTargetCount,
+        SUM(CASE WHEN tenant_id = ? AND oid = ? THEN 1 ELSE 0 END) AS mappedTargetCount,
+        SUM(CASE WHEN tenant_id <> ? OR oid <> ? THEN 1 ELSE 0 END) AS wrongOwnerCount
+      FROM kb_tts_progress
+    `).get(tenantId, oid, tenantId, oid)
+    legacyProgressOwnership.mappedTargetCount ??= 0
+    legacyProgressOwnership.wrongOwnerCount ??= 0
     const tables = {}
     for (const table of Object.keys(TABLES)) {
       const sourceCanonical = canonicalRows(sourceDb, 'main', table)
@@ -107,9 +200,16 @@ export async function reconcileLegacy({
             parameters: [tenantId, oid],
           })
         : canonicalRows(db, 'main', table)
+      const ownershipMatches = table !== 'kb_tts_progress' ||
+        (
+          legacyProgressOwnership.totalTargetCount === sourceCanonical.count &&
+          legacyProgressOwnership.mappedTargetCount === sourceCanonical.count &&
+          legacyProgressOwnership.wrongOwnerCount === 0
+        )
       const rowsMatch =
         sourceCanonical.count === targetCanonical.count &&
-        sourceCanonical.rowHash === targetCanonical.rowHash
+        sourceCanonical.rowHash === targetCanonical.rowHash &&
+        ownershipMatches
       const keysMatch = sourceCanonical.keyHash === targetCanonical.keyHash
       const oracle = SOURCE_ORACLES[table]
       tables[table] = {
@@ -125,6 +225,9 @@ export async function reconcileLegacy({
         canonicalTargetHash: rowsMatch && keysMatch ? oracle.hash : null,
         expectedSourceCount: oracle.count,
         countMatchesOracle: sourceCanonical.count === oracle.count,
+        ...(table === 'kb_tts_progress'
+          ? { ...legacyProgressOwnership, ownershipMatches }
+          : {}),
         rowsMatch,
         keysMatch,
       }
@@ -148,6 +251,20 @@ export async function reconcileLegacy({
       (ownerSummary.count === 0 || ownerSummary.identities === 1) &&
       wrongOwners === 0
     const sequenceMatches = sameJson(sourceSequences, targetSequences)
+    const expectedState = expectedProgressState(sourceDb, tenantId, oid)
+    const stateEvidence = progressStateEvidence(
+      expectedState,
+      progressStateRows(db, 'user_state'),
+      tenantId,
+      oid,
+    )
+    const historyEvidence = progressStateEvidence(
+      expectedState,
+      progressStateRows(db, 'user_state_changes'),
+      tenantId,
+      oid,
+    )
+    const applicationProgressMatches = stateEvidence.match && historyEvidence.match
     const sourceProductEvidence = Object.fromEntries(
       Object.entries(tables).map(([name, table]) => [name, table.canonicalSourceHash]),
     )
@@ -168,6 +285,16 @@ export async function reconcileLegacy({
       },
       foreignKeys: { ok: foreignKeyViolations.length === 0, violations: foreignKeyViolations },
       ownership: { ...ownerSummary, wrongOwners, match: ownerMatches },
+      kbProgress: {
+        legacyTable: {
+          sourceCount: tables.kb_tts_progress.sourceCount,
+          ...legacyProgressOwnership,
+          match: tables.kb_tts_progress.ownershipMatches,
+        },
+        userState: stateEvidence,
+        userStateChanges: historyEvidence,
+        match: applicationProgressMatches,
+      },
       canonicalProduct: {
         sourceHash: SOURCE_PRODUCT_SHA256,
         targetHash: allTableMatches ? SOURCE_PRODUCT_SHA256 : null,
@@ -177,6 +304,7 @@ export async function reconcileLegacy({
       ok:
         allTableMatches &&
         ownerMatches &&
+        applicationProgressMatches &&
         sequenceMatches &&
         foreignKeyViolations.length === 0,
     }
@@ -193,6 +321,7 @@ export async function reconcileLegacy({
     parentIdentity: outputParent,
     recoveryFilesystem,
   })
+  let reportPublication
   try {
     const stagedReport = privateStageChild(reportStage, 'reconciliation.json')
     writeFileSync(stagedReport, `${JSON.stringify(report, null, 2)}\n`, {
@@ -201,9 +330,17 @@ export async function reconcileLegacy({
     })
     fsyncPrivateStageFile(reportStage, 'reconciliation.json')
     await beforePublish({ output: destination })
-    publishPrivateStageNoReplace(reportStage, 'reconciliation.json', destination)
+    reportPublication = publishPrivateStageNoReplace(
+      reportStage,
+      'reconciliation.json',
+      destination,
+    )
   } finally {
-    cleanupPrivateStage(reportStage)
+    try {
+      cleanupPrivateStage(reportStage)
+    } finally {
+      closePublicationOwnership(reportPublication)
+    }
   }
   if (!report.ok) {
     const error = new Error('Legacy reconciliation failed')

@@ -11,10 +11,12 @@ import {
   parseArgs,
   readSequences,
   requireGuid,
+  legacySavedPosition,
 } from './legacy-lib.mjs'
 import {
   assertPathAbsent,
   cleanupPrivateStage,
+  closePublicationOwnership,
   createPrivateStage,
   ensureSecureDirectoryChain,
   fsyncPrivateStageFile,
@@ -23,19 +25,6 @@ import {
   requireSecureRecoveryFilesystem,
   stageVerifiedFile,
 } from './secure-files.mjs'
-
-function savedPosition(row) {
-  return {
-    sectionIndex: row.section_index,
-    sentenceIndex: row.sentence_index,
-    title: row.section_title,
-    timestamp: Date.parse(
-      /(?:Z|[+-]\d\d:\d\d)$/.test(row.updated_at)
-        ? row.updated_at
-        : `${row.updated_at.replace(' ', 'T')}Z`,
-    ),
-  }
-}
 
 function assertImportedProgressState(db, sourceDb, tenantId, oid) {
   for (const source of sourceDb.prepare(
@@ -68,7 +57,8 @@ function assertImportedProgressState(db, sourceDb, tenantId, oid) {
     }
     const queuedValue = JSON.parse(imported.value_json)
     if (typeof queuedValue !== 'string' ||
-        JSON.stringify(JSON.parse(queuedValue)) !== JSON.stringify(savedPosition(source))) {
+        JSON.stringify(JSON.parse(queuedValue)) !==
+          JSON.stringify(legacySavedPosition(source))) {
       throw new Error(`Imported KB progress encoding is invalid for ${source.guide_id}`)
     }
   }
@@ -105,6 +95,7 @@ export async function importLegacy({
   }
   let sourceDb
   let db
+  let published
   try {
     const stagedSource = stageVerifiedFile(source, stage, 'source.sqlite3', expectation)
     const sourceFile = {
@@ -209,7 +200,7 @@ export async function importLegacy({
           row.section_title,
           row.updated_at,
         )
-        const position = savedPosition(row)
+        const position = legacySavedPosition(row)
         const change = insertProgressChange.run(
           tenantId,
           oid,
@@ -249,7 +240,7 @@ export async function importLegacy({
     sourceDb = null
     fsyncPrivateStageFile(stage, 'target.db')
     await beforePublish({ target: targetPath })
-    const published = publishPrivateStageNoReplace(stage, 'target.db', targetPath)
+    published = publishPrivateStageNoReplace(stage, 'target.db', targetPath)
     return {
       source: sourceFile,
       target: published.path,
@@ -259,7 +250,11 @@ export async function importLegacy({
   } finally {
     if (sourceDb?.open) sourceDb.close()
     if (db?.open) db.close()
-    cleanupPrivateStage(stage)
+    try {
+      cleanupPrivateStage(stage)
+    } finally {
+      closePublicationOwnership(published)
+    }
   }
 }
 

@@ -18,6 +18,7 @@ import {
   assertPrivateStage,
   cleanupPrivateStage,
   closeDirectoryIdentity,
+  closePublicationOwnership,
   createPrivateStage,
   ensureSecureDirectoryChain,
   fsyncPrivateStageFile,
@@ -396,6 +397,8 @@ export async function createOnlineBackup({
     } else {
       closeDirectoryIdentity(parentIdentity)
     }
+    closePublicationOwnership(databasePublication)
+    closePublicationOwnership(manifestPublication)
     if (cleanupError) throw cleanupError
   }
 }
@@ -529,6 +532,8 @@ export async function verifyDisposableRestore({
     } catch (error) {
       cleanupError ??= error
     }
+    closePublicationOwnership(databasePublication)
+    closePublicationOwnership(manifestPublication)
     if (cleanupError) throw cleanupError
   }
 }

@@ -14,8 +14,59 @@ export interface AdaptiveScoreResults {
   domainBreakdown: Record<string, { correct: number; total: number }>;
 }
 
-const rawToScaled = (raw: number, total: number): number => {
-  const scaled = Math.round(200 + (raw / total) * 600);
+export type AdaptiveTestMode = 'full' | 'rw-only' | 'math-only';
+
+export interface AdaptiveResultSummary {
+  heading: string;
+  score: number;
+  maxScore: 800 | 1600;
+  sectionScores: Array<{ label: string; score: number }>;
+}
+
+export const countCurrentModuleAnswers = (
+  questions: Array<{ id: string }>,
+  answers: Record<string, number | null>,
+): number => questions.reduce(
+  (count, question) => count + (typeof answers[question.id] === 'number' ? 1 : 0),
+  0,
+);
+
+export const adaptiveResultSummary = (
+  mode: AdaptiveTestMode,
+  results: AdaptiveScoreResults,
+): AdaptiveResultSummary => {
+  if (mode === 'rw-only') {
+    return {
+      heading: 'Reading & Writing Score',
+      score: results.rwScaled,
+      maxScore: 800,
+      sectionScores: [],
+    };
+  }
+  if (mode === 'math-only') {
+    return {
+      heading: 'Math Score',
+      score: results.mathScaled,
+      maxScore: 800,
+      sectionScores: [],
+    };
+  }
+  return {
+    heading: 'Your SAT Score',
+    score: results.totalScaled,
+    maxScore: 1600,
+    sectionScores: [
+      { label: 'Reading & Writing', score: results.rwScaled },
+      { label: 'Math', score: results.mathScaled },
+    ],
+  };
+};
+
+export type AdaptiveRoute = 'easy' | 'medium' | 'hard';
+
+const rawToScaled = (raw: number, total: number, route: AdaptiveRoute = 'medium'): number => {
+  const routeAdjustment = route === 'hard' ? 30 : route === 'easy' ? -30 : 0;
+  const scaled = Math.round(200 + (raw / total) * 600 + routeAdjustment);
   return Math.min(800, Math.max(200, scaled));
 };
 
@@ -23,6 +74,7 @@ export const scoreAdaptiveTest = (
   questions: AdaptiveScoreQuestion[],
   presentedQuestionIds: string[],
   answers: Record<string, number | null>,
+  routes: Partial<Record<AdaptiveScoreQuestion['section'], AdaptiveRoute>> = {},
 ): AdaptiveScoreResults => {
   const byId = new Map(questions.map(question => [question.id, question]));
   const presented = [...new Set(presentedQuestionIds)]
@@ -49,8 +101,12 @@ export const scoreAdaptiveTest = (
     if (correct) domainBreakdown[question.domain].correct += 1;
   }
 
-  const rwScaled = rwTotal > 0 ? rawToScaled(rwCorrect, rwTotal) : 0;
-  const mathScaled = mathTotal > 0 ? rawToScaled(mathCorrect, mathTotal) : 0;
+  const rwScaled = rwTotal > 0
+    ? rawToScaled(rwCorrect, rwTotal, routes['reading-writing'])
+    : 0;
+  const mathScaled = mathTotal > 0
+    ? rawToScaled(mathCorrect, mathTotal, routes.math)
+    : 0;
   return {
     rwRaw: rwCorrect,
     rwScaled,

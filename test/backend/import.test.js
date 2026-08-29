@@ -357,6 +357,19 @@ test('reconcile persists counts, keys, canonical rows/tables/product, FKs, and s
   assert.equal(report.ok, true)
   assert.equal(report.tables.kb_tts_progress.sourceCount, 3)
   assert.equal(report.tables.kb_tts_progress.rowsMatch, true)
+  assert.deepEqual(
+    {
+      totalTargetCount: report.kbProgress.legacyTable.totalTargetCount,
+      mappedTargetCount: report.kbProgress.legacyTable.mappedTargetCount,
+      wrongOwnerCount: report.kbProgress.legacyTable.wrongOwnerCount,
+      match: report.kbProgress.legacyTable.match,
+    },
+    { totalTargetCount: 3, mappedTargetCount: 3, wrongOwnerCount: 0, match: true },
+  )
+  assert.equal(report.kbProgress.userState.match, true)
+  assert.equal(report.kbProgress.userStateChanges.match, true)
+  assert.equal(report.kbProgress.userState.expectedRowHash.length, 64)
+  assert.equal(report.kbProgress.userStateChanges.targetRowHash.length, 64)
   assert.equal(
     report.canonicalProduct.targetHash,
     'b71bee99ff4160f7018b227dda921311aa9a32775c613e5159dcc411eaaab8cb',
@@ -364,6 +377,129 @@ test('reconcile persists counts, keys, canonical rows/tables/product, FKs, and s
   assert.equal(report.foreignKeys.ok, true)
   assert.equal(existsSync(output), true)
   assert.equal(await sha256File(target), targetHashBefore)
+})
+
+test('reconcile rejects every application-facing KB progress divergence', async () => {
+  const cases = [
+    {
+      name: 'deleted-state',
+      evidence: 'userState',
+      mutate(db) {
+        db.prepare(`
+          DELETE FROM user_state
+          WHERE resource_key = 'kb-tts-progress:guide-1'
+        `).run()
+      },
+    },
+    {
+      name: 'deleted-history',
+      evidence: 'userStateChanges',
+      mutate(db) {
+        db.prepare(`
+          DELETE FROM user_state_changes
+          WHERE resource_key = 'kb-tts-progress:guide-1'
+        `).run()
+      },
+    },
+    {
+      name: 'misowned-legacy-progress',
+      evidence: 'legacyTable',
+      mutate(db) {
+        db.prepare(`
+          INSERT INTO kb_tts_progress(
+            tenant_id, oid, guide_id, section_index, sentence_index, section_title
+          ) VALUES (?, ?, 'attacker-guide', 0, 0, 'extra')
+        `).run('22222222-2222-2222-2222-222222222222', oid)
+      },
+    },
+    {
+      name: 'misowned-extra-state',
+      evidence: 'userState',
+      mutate(db) {
+        db.prepare(`
+          INSERT INTO user_state(
+            tenant_id, oid, resource_type, resource_key, revision,
+            value_json, tombstone, mutation_id, updated_at, change_sequence
+          ) VALUES (?, ?, 'progress', 'kb-tts-progress:attacker', 1,
+                    '"extra"', 0, 'extra-state', '2026-01-01 00:00:00', 9001)
+        `).run('22222222-2222-2222-2222-222222222222', oid)
+      },
+    },
+    {
+      name: 'misowned-extra-history',
+      evidence: 'userStateChanges',
+      mutate(db) {
+        db.prepare(`
+          INSERT INTO user_state_changes(
+            tenant_id, oid, resource_type, resource_key, revision,
+            value_json, tombstone, mutation_id, updated_at
+          ) VALUES (?, ?, 'progress', 'kb-tts-progress:attacker', 1,
+                    '"extra"', 0, 'extra-history', '2026-01-01 00:00:00')
+        `).run(tenantId, 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')
+      },
+    },
+    {
+      name: 'state-encoding-revision-tombstone-sequence-mismatch',
+      evidence: 'userState',
+      mutate(db) {
+        db.prepare(`
+          UPDATE user_state
+          SET value_json = '{"not":"a queued string"}',
+              revision = 2,
+              tombstone = 1,
+              change_sequence = 9002
+          WHERE resource_key = 'kb-tts-progress:guide-2'
+        `).run()
+      },
+    },
+    {
+      name: 'history-sequence-mismatch',
+      evidence: 'userStateChanges',
+      mutate(db) {
+        db.prepare(`
+          UPDATE user_state_changes
+          SET change_sequence = 9003, value_json = '"wrong"', revision = 2
+          WHERE resource_key = 'kb-tts-progress:guide-3'
+        `).run()
+      },
+    },
+  ]
+
+  for (const scenario of cases) {
+    const root = workspace()
+    const source = join(root, 'legacy.sqlite3')
+    const target = join(root, 'lantern.db')
+    const output = join(root, 'reconciliation.json')
+    createLegacy(source)
+    const sourceExpectation = await expectation(source)
+    await importLegacy({
+      source,
+      target,
+      ownerTenant: tenantId,
+      ownerOid: oid,
+      sourceExpectation,
+    })
+    const targetDb = new Database(target)
+    scenario.mutate(targetDb)
+    targetDb.close()
+
+    let failure
+    try {
+      await reconcileLegacy({
+        source,
+        target,
+        ownerTenant: tenantId,
+        ownerOid: oid,
+        output,
+        sourceExpectation,
+      })
+    } catch (error) {
+      failure = error
+    }
+    assert.equal(failure?.report?.ok, false, scenario.name)
+    assert.equal(failure.report.kbProgress[scenario.evidence].match, false, scenario.name)
+    assert.equal(existsSync(output), true, scenario.name)
+  }
 })
 
 test('import and reconcile reject source aliases before writable target open', async () => {

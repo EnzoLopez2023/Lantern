@@ -43,7 +43,6 @@ test('JWT verifier checks signature, issuer, tenant, audience, lifetime, and GUI
     oid,
     name: 'Test User',
     preferred_username: 'address@example.invalid',
-    idtyp: 'user',
     scp: 'openid access_as_user profile',
     ...overrides,
   })
@@ -60,11 +59,12 @@ test('JWT verifier checks signature, issuer, tenant, audience, lifetime, and GUI
     displayName: 'Test User',
     email: 'address@example.invalid',
   })
+  assert.equal((await verify(await makeToken({ idtyp: 'user' }))).oid, oid)
   await assert.rejects(verify(await makeToken({ oid: 'not-a-guid' })), /GUID/)
   await assert.rejects(verify(await makeToken({ scp: undefined })))
   await assert.rejects(verify(await makeToken({ scp: 'openid wrong_scope' })), /scope/)
-  await assert.rejects(verify(await makeToken({ idtyp: undefined })))
   await assert.rejects(verify(await makeToken({ idtyp: 'app' })), /delegated user/)
+  await assert.rejects(verify(await makeToken({ idtyp: 'service' })), /delegated user/)
   await assert.rejects(verify(await makeToken({
     idtyp: 'app',
     scp: undefined,

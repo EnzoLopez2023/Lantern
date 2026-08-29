@@ -49,6 +49,7 @@ import {
 import { saveAttempt, type PerQuestion } from '../../shared/analytics';
 import { apiWrite } from '../../../app/api/apiFetch';
 import { reportStorageSyncFailure } from '../../../app/storage/scopedStorage';
+import { availableQuestionDomains, filterQuestionsByDomain, scaleEocepScore } from '../../shared/eocepSandbox';
 import './examSandbox.css';
 
 const EXAM_ID = 'ALG1';
@@ -155,15 +156,6 @@ function isAnswerCorrect(q: Question, selected: number[], subAnswers?: number[][
   return arraysEqualAsSet(selected, q.correctAnswers);
 }
 
-// Scale: 70% raw → 700 scaled (Microsoft scales). Linear with floor.
-// 0% raw = 350, 70% raw = 700, 100% raw = 950.
-function scaleRawScore(correct: number, total: number): number {
-  if (total === 0) return 0;
-  const raw = correct / total;
-  return Math.round(350 + raw * (raw >= 0.7 ? 600 + (raw - 0.7) * (-100) : 500));
-  // The above curve gives ~700 at 70%, ~870 at 90%, ~950 at 100%.
-}
-
 export default function ExamSandbox() {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -176,6 +168,7 @@ export default function ExamSandbox() {
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [results, setResults] = useState<FinalResults | null>(null);
+  const [setupError, setSetupError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const startTimeRef = useRef<number>(0);
   const timerRef = useRef<number | null>(null);
@@ -191,10 +184,12 @@ export default function ExamSandbox() {
 
   // Build the question pool when starting
   const startExam = useCallback(() => {
-    let pool = questions.filter(q => q.type !== 'ordering' || true); // include all; ordering uses position dropdowns
-    if (config.domain !== 'both') {
-      pool = pool.filter(q => q.domain === config.domain);
+    const pool = filterQuestionsByDomain(questions, config.domain);
+    if (pool.length === 0) {
+      setSetupError('No questions are available for that domain. Choose an available domain and try again.');
+      return;
     }
+    setSetupError(null);
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
     const targetCount = config.length === 'full' ? 50 : 25;
     const picked = shuffled.slice(0, Math.min(targetCount, shuffled.length));
@@ -262,7 +257,7 @@ export default function ExamSandbox() {
       rows.push({ question: q, selected, correct, flagged: a?.flagged ?? false });
     }
 
-    const scoreScaled = scaleRawScore(correctCount, examQuestions.length);
+    const scoreScaled = scaleEocepScore(correctCount, examQuestions.length);
     const passed = scoreScaled >= PASS;
 
     const final: FinalResults = {
@@ -500,6 +495,7 @@ export default function ExamSandbox() {
       resumable={resumableSnapshot}
       onResume={resumeExam}
       onDiscardSnapshot={discardSnapshot}
+      error={setupError}
     />;
   }
 
@@ -775,7 +771,7 @@ export default function ExamSandbox() {
 // ============ SUB-COMPONENTS ============
 
 function SetupScreen({
-  config, onChange, onStart, isDark, resumable, onResume, onDiscardSnapshot,
+  config, onChange, onStart, isDark, resumable, onResume, onDiscardSnapshot, error,
 }: {
   config: ExamConfig;
   onChange: (c: ExamConfig) => void;
@@ -784,6 +780,7 @@ function SetupScreen({
   resumable: SandboxSnapshot | null;
   onResume: (snap: SandboxSnapshot) => void;
   onDiscardSnapshot: () => void;
+  error: string | null;
 }) {
   const ACCENT = isDark ? '#C77AA0' : '#5C2A4A';
   const CARD_BG = isDark ? '#2E2F38' : '#FBF5E6';
@@ -796,10 +793,14 @@ function SetupScreen({
     { id: 'short', label: 'Short practice (25 Q)', sub: 'Half-length, half-time', count: 25, duration: 35 * 60 },
   ];
 
+  const availableDomains = availableQuestionDomains(questions)
+    .filter((domain): domain is Exclude<DomainPick, 'both'> => domain === 1 || domain === 2);
   const domainOptions: { id: DomainPick; label: string }[] = [
     { id: 'both', label: 'All topics' },
-    { id: 1, label: 'Algebra 1 topics' },
-    { id: 2, label: 'Reserved' },
+    ...availableDomains.map(domain => ({
+      id: domain,
+      label: domain === 1 ? 'Algebra 1 topics' : `Domain ${domain}`,
+    })),
   ];
 
   return (
@@ -948,6 +949,12 @@ function SetupScreen({
           <Chip size="small" label="Free question navigation" variant="outlined" sx={{ borderColor: BORDER, color: TEXT_SEC }} />
           <Chip size="small" label="Resumes after reload" variant="outlined" sx={{ borderColor: BORDER, color: TEXT_SEC }} />
         </Box>
+
+        {error && (
+          <Typography role="alert" variant="body2" sx={{ color: 'error.main', mb: 2 }}>
+            {error}
+          </Typography>
+        )}
 
         <Button
           fullWidth

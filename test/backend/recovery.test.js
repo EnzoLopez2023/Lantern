@@ -3,9 +3,11 @@ import Database from 'better-sqlite3'
 import {
   appendFileSync,
   existsSync,
+  fstatSync,
   lstatSync,
   mkdirSync,
   readFileSync,
+  readlinkSync,
   readdirSync,
   renameSync,
   statSync,
@@ -129,8 +131,24 @@ test('recovery uses online SQLite backup and disposable verified restores', asyn
   db.prepare("INSERT INTO sample(value, updated_at) VALUES ('before', '2026-08-28T12:00:00Z')")
     .run()
 
-  const backupReport = await createOnlineBackup({ database: source, output: backup })
+  const ownershipDescriptors = []
+  const backupReport = await createOnlineBackup({
+    database: source,
+    output: backup,
+    publicationHooks: {
+      afterLink: ({ publication }) => {
+        ownershipDescriptors.push(publication.ownershipDescriptor)
+      },
+    },
+  })
   assert.equal(backupReport.ok, true)
+  assert.equal(ownershipDescriptors.length, 2)
+  for (const descriptor of ownershipDescriptors) {
+    assert.throws(
+      () => fstatSync(descriptor),
+      (error) => error.code === 'EBADF',
+    )
+  }
   assert.equal(existsSync(backupManifest), true)
   assert.equal(backupReport.manifest.format, 'lantern-sqlite-backup/v1')
   assert.equal(backupReport.manifest.database.bytes, statSync(backup).size)
@@ -543,6 +561,7 @@ test('inode cleanup quarantines an interleaved replacement instead of deleting i
   writeFileSync(staged, 'owned-publication', { flag: 'wx', mode: 0o600 })
   fsyncFile(staged)
   const publication = publishNoReplace(staged, output)
+  const ownershipDescriptor = publication.ownershipDescriptor
   cleanupPrivateStage(stage)
 
   let failure
@@ -551,6 +570,7 @@ test('inode cleanup quarantines an interleaved replacement instead of deleting i
       afterValidation: () => {
         unlinkSync(output)
         writeFileSync(output, 'raced-replacement')
+        publication.inode = lstatSync(output)
       },
       afterMove: () => {
         writeFileSync(output, 'second-occupant')
@@ -562,4 +582,66 @@ test('inode cleanup quarantines an interleaved replacement instead of deleting i
   assert.match(failure?.message, /preserved a raced replacement in quarantine/)
   assert.equal(readFileSync(output, 'utf8'), 'second-occupant')
   assert.equal(readFileSync(failure.quarantinePath, 'utf8'), 'raced-replacement')
+  assert.throws(
+    () => fstatSync(ownershipDescriptor),
+    (error) => error.code === 'EBADF',
+  )
+})
+
+test('publication cleanup preserves raced symlinks without following them', () => {
+  const scenarios = [
+    { name: 'dangling', secondOccupant: false },
+    { name: 'target', secondOccupant: false },
+    { name: 'occupied', secondOccupant: true },
+  ]
+
+  for (const scenario of scenarios) {
+    const root = workspace()
+    const output = join(root, 'published.db')
+    const symlinkTarget = scenario.name === 'dangling'
+      ? join(root, 'missing-target')
+      : join(root, 'target.txt')
+    if (scenario.name !== 'dangling') writeFileSync(symlinkTarget, 'target-unchanged')
+    const stage = createPrivateStage(output, '.publication-stage-')
+    const staged = join(stage.path, 'owned.db')
+    writeFileSync(staged, 'owned-publication', { flag: 'wx', mode: 0o600 })
+    fsyncFile(staged)
+    const publication = publishNoReplace(staged, output)
+    const ownershipDescriptor = publication.ownershipDescriptor
+    cleanupPrivateStage(stage)
+
+    let failure
+    try {
+      unlinkIfSame(publication, {
+        afterValidation: () => {
+          unlinkSync(output)
+          symlinkSync(symlinkTarget, output)
+        },
+        afterMove: () => {
+          if (scenario.secondOccupant) writeFileSync(output, 'second-occupant')
+        },
+      })
+    } catch (error) {
+      failure = error
+    }
+
+    assert.ok(failure, scenario.name)
+    assert.match(failure.message, /preserved an unowned non-regular replacement/)
+    assert.equal(lstatSync(failure.quarantinePath).isSymbolicLink(), true)
+    assert.equal(readlinkSync(failure.quarantinePath), symlinkTarget)
+    if (scenario.secondOccupant) {
+      assert.equal(readFileSync(output, 'utf8'), 'second-occupant')
+    } else {
+      assert.equal(existsSync(output), false)
+    }
+    if (scenario.name === 'dangling') {
+      assert.equal(existsSync(symlinkTarget), false)
+    } else {
+      assert.equal(readFileSync(symlinkTarget, 'utf8'), 'target-unchanged')
+    }
+    assert.throws(
+      () => fstatSync(ownershipDescriptor),
+      (error) => error.code === 'EBADF',
+    )
+  }
 })

@@ -46,15 +46,26 @@ export interface QuestionStat {
 }
 
 export type StatsMap = Record<string, QuestionStat>;
+const observations = new WeakMap<StatsMap, { value: string | null; revision: number }>();
+
+const bindObservation = (
+  stats: StatsMap,
+  observation: { value: string | null; revision: number },
+): StatsMap => {
+  observations.set(stats, observation);
+  return stats;
+};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export function loadStats(examId: string): StatsMap {
   try {
-    const raw = localStorage.getItem(storageKey(examId));
+    const key = storageKey(examId);
+    const observation = localStorage.observeItem(key);
+    const raw = observation.value;
     if (raw) {
       const parsed = JSON.parse(raw);
-      return typeof parsed === 'object' && parsed ? parsed : {};
+      return bindObservation(typeof parsed === 'object' && parsed ? parsed : {}, observation);
     }
     // One-time migration: when the AI901 per-exam key is empty, pull from
     // the legacy hardcoded key so existing users don't lose history.
@@ -65,20 +76,31 @@ export function loadStats(examId: string): StatsMap {
           const parsed = JSON.parse(legacy);
           if (parsed && typeof parsed === 'object') {
             localStorage.setItem(storageKey(examId), legacy);
-            return parsed;
+            return bindObservation(parsed, localStorage.observeItem(key));
           }
         } catch { /* fall through to {} */ }
       }
     }
-    return {};
+    return bindObservation({}, observation);
   } catch {
-    return {};
+    return bindObservation({}, { value: null, revision: 0 });
   }
 }
 
 export function saveStats(examId: string, stats: StatsMap) {
   try {
-    localStorage.setItem(storageKey(examId), JSON.stringify(stats));
+    const key = storageKey(examId);
+    const value = JSON.stringify(stats);
+    const observed = observations.get(stats);
+    if (observed) {
+      const result = localStorage.setItemIfObserved(key, value, observed);
+      if (result.saved) {
+        bindObservation(stats, result.observation);
+      }
+      return;
+    }
+    localStorage.setItem(key, value);
+    bindObservation(stats, localStorage.observeItem(key));
   } catch {
     // ignore quota errors
   }
@@ -150,7 +172,10 @@ export function recordAnswer(
     lastSeenAt: Date.now(),
   };
   const withSM2 = applySM2(withCount, correct, confidence);
-  return { ...stats, [questionId]: withSM2 };
+  const next = { ...stats, [questionId]: withSM2 };
+  const observation = observations.get(stats);
+  if (observation) bindObservation(next, observation);
+  return next;
 }
 
 export interface SubdomainSummary {

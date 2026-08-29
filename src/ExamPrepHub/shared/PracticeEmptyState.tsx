@@ -26,6 +26,10 @@ interface PracticeEmptyStateProps {
   textColor: string;
   secondaryTextColor: string;
   accentColor: string;
+  showModeSelector?: boolean;
+  onBrowseAll?: () => void;
+  title?: string;
+  description?: string;
 }
 
 export function PracticeEmptyState({
@@ -37,12 +41,16 @@ export function PracticeEmptyState({
   textColor,
   secondaryTextColor,
   accentColor,
+  showModeSelector = true,
+  onBrowseAll,
+  title: titleOverride,
+  description = 'Choose another mode to keep practicing. Your current progress is preserved.',
 }: PracticeEmptyStateProps) {
-  const title = mode === 'bookmarks'
+  const title = titleOverride ?? (mode === 'bookmarks'
     ? 'No bookmarked questions yet'
     : mode === 'due'
       ? 'No questions are due for review'
-      : 'No questions are available in this mode';
+      : 'No questions are available in this mode');
 
   return (
     <Paper
@@ -58,27 +66,29 @@ export function PracticeEmptyState({
       <Stack spacing={2} alignItems="center">
         <Typography variant="h6" sx={{ color: textColor }}>{title}</Typography>
         <Typography variant="body2" sx={{ color: secondaryTextColor }}>
-          Choose another mode to keep practicing. Your current progress is preserved.
+          {description}
         </Typography>
-        <FormControl size="small" sx={{ minWidth: 210 }}>
-          <InputLabel id="empty-practice-mode-label">Practice mode</InputLabel>
-          <Select
-            labelId="empty-practice-mode-label"
-            value={mode}
-            label="Practice mode"
-            onChange={event => onModeChange(event.target.value as StandardPracticeMode)}
-          >
-            <MenuItem value="browse">Browse all</MenuItem>
-            <MenuItem value="weak">Weak spots</MenuItem>
-            <MenuItem value="adaptive">Adaptive</MenuItem>
-            <MenuItem value="due">Due for review ({dueCount})</MenuItem>
-            <MenuItem value="daily">Daily warmup</MenuItem>
-            <MenuItem value="bookmarks">Bookmarks</MenuItem>
-          </Select>
-        </FormControl>
+        {showModeSelector && (
+          <FormControl size="small" sx={{ minWidth: 210 }}>
+            <InputLabel id="empty-practice-mode-label">Practice mode</InputLabel>
+            <Select
+              labelId="empty-practice-mode-label"
+              value={mode}
+              label="Practice mode"
+              onChange={event => onModeChange(event.target.value as StandardPracticeMode)}
+            >
+              <MenuItem value="browse">Browse all</MenuItem>
+              <MenuItem value="weak">Weak spots</MenuItem>
+              <MenuItem value="adaptive">Adaptive</MenuItem>
+              <MenuItem value="due">Due for review ({dueCount})</MenuItem>
+              <MenuItem value="daily">Daily warmup</MenuItem>
+              <MenuItem value="bookmarks">Bookmarks</MenuItem>
+            </Select>
+          </FormControl>
+        )}
         <Button
           variant="contained"
-          onClick={() => onModeChange('browse')}
+          onClick={onBrowseAll ?? (() => onModeChange('browse'))}
           sx={{ bgcolor: accentColor, textTransform: 'none' }}
         >
           Browse all questions

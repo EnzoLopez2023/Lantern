@@ -9,6 +9,7 @@
 // with a centered rootMargin for "current section" scrollspy.
 
 import { useEffect, useRef, useState } from 'react';
+import { hasSectionCrossedReadingPosition } from './guideProgressTracking';
 
 export function useGuideProgress(sectionIds: string[]) {
   const [readSections, setReadSections] = useState<Set<string>>(new Set());
@@ -22,7 +23,7 @@ export function useGuideProgress(sectionIds: string[]) {
           const next = new Set(prev);
           let changed = false;
           entries.forEach(e => {
-            if (e.isIntersecting && !next.has(e.target.id)) {
+            if (hasSectionCrossedReadingPosition(e) && !next.has(e.target.id)) {
               next.add(e.target.id);
               changed = true;
             }
@@ -30,7 +31,7 @@ export function useGuideProgress(sectionIds: string[]) {
           return changed ? next : prev;
         });
       },
-      { threshold: 0.3 }
+      { threshold: 0, rootMargin: '0px 0px -20% 0px' }
     );
     const spyObserver = new IntersectionObserver(
       entries => {

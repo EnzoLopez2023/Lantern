@@ -15,7 +15,12 @@ import {
 import { createStateSyncClient, type StateRecord } from '../api/stateSync';
 import { configureApiTokenProvider } from '../api/apiFetch';
 import { retryableRequest } from '../api/retryableRequest';
-import { storageIdentityForAccount, storageIdentityKey as makeStorageIdentityKey } from './authIdentity';
+import {
+  isHydrationActivationReady,
+  isCurrentHydrationRequest,
+  storageIdentityForAccount,
+  storageIdentityKey as makeStorageIdentityKey,
+} from './authIdentity';
 import { BootstrapRecovery } from './BootstrapRecovery';
 import { authRedirectFailure } from './bootstrapError';
 
@@ -29,23 +34,50 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const storageIdentityKey = makeStorageIdentityKey(storageIdentity);
   const storageTenant = storageIdentity?.tenant;
   const storageOid = storageIdentity?.oid;
-  const [configuredIdentityKey, setConfiguredIdentityKey] = useState<string | null>(null);
-  const [hydratedIdentityKey, setHydratedIdentityKey] = useState<string | null>(null);
+  const [configuredActivation, setConfiguredActivation] = useState<{
+    key: string;
+    generation: number;
+  } | null>(null);
+  const [hydratedActivation, setHydratedActivation] = useState<{
+    key: string;
+    generation: number;
+  } | null>(null);
   const [loginFailure, setLoginFailure] = useState<string | null>(null);
   const initialPulls = useRef(new Map<string, Promise<StateRecord[]>>());
+  const hydrationGeneration = useRef(0);
 
   useLayoutEffect(() => {
+    const generation = hydrationGeneration.current + 1;
+    hydrationGeneration.current = generation;
+    setHydratedActivation(null);
     if (!storageIdentityKey || !storageTenant || !storageOid) {
-      setConfiguredIdentityKey(null);
+      setConfiguredActivation(null);
       return;
     }
     configureStorageIdentity({ tenant: storageTenant, oid: storageOid });
-    setConfiguredIdentityKey(storageIdentityKey);
+    setConfiguredActivation({ key: storageIdentityKey, generation });
   }, [storageIdentityKey, storageOid, storageTenant]);
 
   useEffect(() => {
-    if (configuredIdentityKey !== storageIdentityKey) return;
-    if (!storageIdentityKey) return;
+    if (configuredActivation?.key !== storageIdentityKey) return;
+    if (!storageIdentityKey || !storageTenant || !storageOid) return;
+    const capturedIdentity = { tenant: storageTenant, oid: storageOid };
+    const generation = configuredActivation.generation;
+    if (hydrationGeneration.current !== generation) return;
+    let active = true;
+    const currentIdentityKey = (): string | null => bypass
+      ? makeStorageIdentityKey(authEnvironment.developmentIdentity)
+      : makeStorageIdentityKey(storageIdentityForAccount(
+          instance.getActiveAccount(),
+          authEnvironment.tenantId,
+        ));
+    const isCurrent = (): boolean => active
+      && isCurrentHydrationRequest(
+        storageIdentityKey,
+        generation,
+        hydrationGeneration.current,
+        currentIdentityKey(),
+      );
     const tokenProvider = async (): Promise<string | null> => {
       if (bypass) return null;
       if (!authEnvironment.apiScope) return null;
@@ -59,48 +91,62 @@ export function AuthGate({ children }: { children: ReactNode }) {
     };
     configureApiTokenProvider(bypass ? null : tokenProvider);
     const sync = createStateSyncClient(tokenProvider);
-    let active = true;
     const pullRecords = (force = false): Promise<StateRecord[]> =>
       retryableRequest(
         initialPulls.current,
         storageIdentityKey,
         () => sync.listAll(force),
-        force,
       );
-    const hydrate = async (force = false): Promise<void> => {
+    const hydrate = async (force = false): Promise<boolean> => {
+      if (!isCurrent()) return false;
       reportStoragePullStarted();
       try {
         const records = await pullRecords(force);
-        if (!active) return;
-        hydrateScopedStorage(records);
+        if (!isCurrent()) return false;
+        hydrateScopedStorage(records, capturedIdentity);
         clearStoragePullFailure();
       } catch (error) {
-        if (active) reportStoragePullFailure(error);
+        if (!isCurrent()) return false;
+        reportStoragePullFailure(error);
       }
+      return isCurrent();
     };
-    configureHydrationRetry(() => hydrate(true));
+    configureHydrationRetry(async () => {
+      if (isCurrent()) await hydrate(true);
+    });
     void (async () => {
-      await hydrate();
-      if (active) {
+      const current = await hydrate();
+      if (current && isCurrent()) {
         configureStorageSync(mutation => sync.pushMutation(mutation));
-        setHydratedIdentityKey(storageIdentityKey);
+        setHydratedActivation({ key: storageIdentityKey, generation });
       }
     })();
     return () => {
       active = false;
-      configureHydrationRetry(null);
-      configureApiTokenProvider(null);
-      configureStorageSync(null);
+      if (hydrationGeneration.current === generation) {
+        configureHydrationRetry(null);
+        configureApiTokenProvider(null);
+        configureStorageSync(null);
+      }
     };
-  }, [bypass, configuredIdentityKey, instance, storageIdentityKey]);
+  }, [
+    bypass,
+    configuredActivation,
+    instance,
+    storageIdentityKey,
+    storageOid,
+    storageTenant,
+  ]);
 
   if (loginFailure) return <BootstrapRecovery error={loginFailure} />;
 
   if (bypass || account) {
-    if (
-      configuredIdentityKey !== storageIdentityKey
-      || hydratedIdentityKey !== storageIdentityKey
-    ) {
+    if (!isHydrationActivationReady(
+      storageIdentityKey,
+      hydrationGeneration.current,
+      configuredActivation,
+      hydratedActivation,
+    )) {
       return <Box sx={{ minHeight: '70vh', display: 'grid', placeItems: 'center' }}><CircularProgress /></Box>;
     }
     return children;

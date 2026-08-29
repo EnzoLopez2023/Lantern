@@ -13,7 +13,7 @@ Lantern Wave 1 is derived only from Hearth production commit `f0b05fc1dbf53e8aa2
 
 Every copied source file is read with `git show <commit>:<path>`. `docs/source-lineage.json` records source and destination paths plus hashes after extraction.
 
-The generated manifest contains 225 pinned source files: 110 byte-for-byte copies and 115 bounded adaptations for strict TypeScript compatibility, literal guide prose, routing, auth-aware persistence, and the independent app boundary. It also records seven Lantern-owned support files added inside the extracted feature trees.
+The generated manifest contains 225 pinned source files: 109 byte-for-byte copies and 116 bounded adaptations for strict TypeScript compatibility, literal guide prose, routing, auth-aware persistence, and the independent app boundary. It also records ten Lantern-owned support files added inside the extracted feature trees.
 
 ## Excluded source
 

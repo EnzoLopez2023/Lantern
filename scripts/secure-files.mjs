@@ -444,17 +444,67 @@ export function fsyncDirectory(path) {
   }
 }
 
+function openPublicationOwnership(path, expected) {
+  const descriptor = openSync(path, constants.O_RDONLY | NO_FOLLOW)
+  try {
+    const opened = fstatSync(descriptor)
+    if (!opened.isFile() || !sameInode(opened, expected)) {
+      throw new Error('Publication ownership descriptor does not match staged file')
+    }
+    return descriptor
+  } catch (error) {
+    closeSync(descriptor)
+    throw error
+  }
+}
+
+export function closePublicationOwnership(publication) {
+  if (!publication || publication.ownershipDescriptor === undefined) return
+  closeSync(publication.ownershipDescriptor)
+  publication.ownershipDescriptor = undefined
+}
+
+function publicationMatchesOwnedFile(publication, path) {
+  if (publication.ownershipDescriptor === undefined) {
+    throw new Error('Publication cleanup requires a retained ownership descriptor')
+  }
+  const owned = fstatSync(publication.ownershipDescriptor)
+  let candidateDescriptor
+  try {
+    candidateDescriptor = openSync(path, constants.O_RDONLY | NO_FOLLOW)
+  } catch {
+    return false
+  }
+  try {
+    const candidate = fstatSync(candidateDescriptor)
+    return owned.isFile() && candidate.isFile() && sameInode(owned, candidate)
+  } finally {
+    closeSync(candidateDescriptor)
+  }
+}
+
 export function publishNoReplace(stagedPath, destination) {
   const staged = lstatSync(stagedPath)
   if (!staged.isFile()) throw new Error('Staged publication is not a regular file')
   const requested = assertPathAbsent(destination)
-  linkSync(stagedPath, requested)
-  const published = lstatSync(requested)
-  if (!sameInode(staged, published)) {
-    throw new Error('Published file inode does not match staged file')
+  const publication = {
+    path: requested,
+    inode: staged,
+    ownershipDescriptor: openPublicationOwnership(stagedPath, staged),
   }
-  fsyncDirectory(dirname(requested))
-  return { path: requested, inode: published }
+  try {
+    linkSync(stagedPath, requested)
+    const published = lstatSync(requested)
+    if (!sameInode(staged, published)) {
+      throw new Error('Published file inode does not match staged file')
+    }
+    publication.inode = published
+    fsyncDirectory(dirname(requested))
+    return publication
+  } catch (error) {
+    closePublicationOwnership(publication)
+    throw error
+  }
 }
 
 export function publishPrivateStageNoReplace(stage, stagedName, destination, {
@@ -484,9 +534,10 @@ export function publishPrivateStageNoReplace(stage, stagedName, destination, {
   }
   assertPrivateStage(stage)
   let publication
+  const ownershipDescriptor = openPublicationOwnership(stagedPath, staged)
   try {
     linkSync(stagedPath, descriptorPath(stage.parent, basename(requested)))
-    publication = { path: requested, inode: staged }
+    publication = { path: requested, inode: staged, ownershipDescriptor }
     afterLink({ publication, stagedName, destination: requested })
     const published = lstatSync(descriptorPath(stage.parent, basename(requested)))
     assertPrivateStage(stage)
@@ -498,13 +549,17 @@ export function publishPrivateStageNoReplace(stage, stagedName, destination, {
     assertPrivateStage(stage)
     return publication
   } catch (error) {
-    if (!publication) throw error
+    if (!publication) {
+      closeSync(ownershipDescriptor)
+      throw error
+    }
     try {
       unlinkIfSame(publication, {
         parentIdentity: stage.parent,
         recoveryFilesystem: stage.recoveryFilesystem,
       })
     } catch (cleanupError) {
+      closePublicationOwnership(publication)
       throw new AggregateError(
         [error, cleanupError],
         `Secure publication failed and rollback could not remove its exact inode: ${error.message}`,
@@ -521,19 +576,25 @@ export function unlinkIfSame(publication, {
   parentIdentity,
   recoveryFilesystem,
 } = {}) {
-  if (parentIdentity) {
-    if (dirname(resolve(publication.path)) !== parentIdentity.path) {
-      throw new Error('Cleanup publication is outside the verified parent')
+  let quarantine
+  try {
+    if (parentIdentity) {
+      if (dirname(resolve(publication.path)) !== parentIdentity.path) {
+        throw new Error('Cleanup publication is outside the verified parent')
+      }
+      assertDirectoryIdentity(parentIdentity, 'Publication parent')
     }
-    assertDirectoryIdentity(parentIdentity, 'Publication parent')
+    const quarantineParent = parentIdentity
+      ? duplicateDirectoryIdentity(parentIdentity)
+      : undefined
+    quarantine = createPrivateStage(publication.path, '.lantern-quarantine-', {
+      parentIdentity: quarantineParent,
+      recoveryFilesystem,
+    })
+  } catch (error) {
+    closePublicationOwnership(publication)
+    throw error
   }
-  const quarantineParent = parentIdentity
-    ? duplicateDirectoryIdentity(parentIdentity)
-    : undefined
-  const quarantine = createPrivateStage(publication.path, '.lantern-quarantine-', {
-    parentIdentity: quarantineParent,
-    recoveryFilesystem,
-  })
   const quarantinedPath = join(quarantine.path, 'publication')
   const publicationPath = parentIdentity
     ? descriptorPath(parentIdentity, basename(publication.path))
@@ -554,7 +615,11 @@ export function unlinkIfSame(publication, {
     }
     const moved = lstatSync(quarantinedAccessPath)
     afterMove({ quarantinedPath, moved })
-    if (sameInode(moved, publication.inode)) {
+    const isOwnedRegularFile =
+      moved.isFile() &&
+      !moved.isSymbolicLink() &&
+      publicationMatchesOwnedFile(publication, quarantinedAccessPath)
+    if (isOwnedRegularFile) {
       assertPrivateStage(quarantine)
       unlinkSync(quarantinedAccessPath)
       if (parentIdentity) {
@@ -564,6 +629,14 @@ export function unlinkIfSame(publication, {
         fsyncDirectory(dirname(publication.path))
       }
       return true
+    }
+    if (!moved.isFile() || moved.isSymbolicLink()) {
+      keepQuarantine = true
+      const failure = new Error(
+        `Cleanup preserved an unowned non-regular replacement in quarantine: ${quarantinedPath}`,
+      )
+      failure.quarantinePath = quarantinedPath
+      throw failure
     }
 
     try {
@@ -594,8 +667,12 @@ export function unlinkIfSame(publication, {
       throw failure
     }
   } finally {
-    if (!keepQuarantine) cleanupPrivateStage(quarantine)
-    else closePrivateStage(quarantine)
+    try {
+      if (!keepQuarantine) cleanupPrivateStage(quarantine)
+      else closePrivateStage(quarantine)
+    } finally {
+      closePublicationOwnership(publication)
+    }
   }
 }
 
