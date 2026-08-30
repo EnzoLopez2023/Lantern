@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { Alert, Box, Button, CircularProgress, Paper, Stack, Typography } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { InteractionStatus } from '@azure/msal-browser';
 import { useMsal } from '@azure/msal-react';
 import { authEnvironment, loginRequest } from './config';
@@ -23,6 +23,7 @@ import {
 } from './authIdentity';
 import { BootstrapRecovery } from './BootstrapRecovery';
 import { authRedirectFailure } from './bootstrapError';
+import LanternLanding from '../../landing/LanternLanding';
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const { instance, inProgress } = useMsal();
@@ -157,32 +158,14 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <Box sx={{ minHeight: '70vh', display: 'grid', placeItems: 'center', px: 2 }}>
-      <Paper variant="outlined" sx={{ width: 'min(100%, 520px)', p: { xs: 3, md: 5 }, borderRadius: 3 }}>
-        <Stack spacing={2.5}>
-          <Typography component="h1" variant="h4">Sign in to Lantern</Typography>
-          <Typography color="text.secondary">
-            Your study history is isolated by Microsoft Entra tenant and user ID.
-          </Typography>
-          {!authEnvironment.configured && (
-            <Alert severity="warning">
-              Authentication is not configured. Set the tenant, client, and API scope environment values, or explicitly enable the development bypass.
-            </Alert>
-          )}
-          <Button
-            variant="contained"
-            disabled={!authEnvironment.configured}
-            onClick={() => {
-              void authRedirectFailure(() => instance.loginRedirect(loginRequest))
-                .then(error => {
-                  if (error) setLoginFailure(error);
-                });
-            }}
-          >
-            Continue with Microsoft
-          </Button>
-        </Stack>
-      </Paper>
-    </Box>
+    <LanternLanding
+      configured={authEnvironment.configured}
+      onSignIn={() => {
+        void authRedirectFailure(() => instance.loginRedirect(loginRequest))
+          .then(error => {
+            if (error) setLoginFailure(error);
+          });
+      }}
+    />
   );
 }
