@@ -19,7 +19,19 @@ RUN npm run typecheck \
 
 FROM node:24-bookworm-slim AS runtime
 
-ENV NODE_ENV=production
+# Release identity. GitHub Actions passes the exact commit and run id; a plain
+# `docker build` gets harmless local-development defaults. In production these
+# are additionally supplied as App Service app settings, which win at runtime;
+# the image labels below always carry the build-time truth for verification.
+ARG BUILD_SHA=local-development
+ARG BUILD_ID=local-development
+LABEL org.opencontainers.image.revision=$BUILD_SHA \
+      org.opencontainers.image.version=$BUILD_ID \
+      org.opencontainers.image.source=https://github.com/EnzoLopez2023/Lantern
+
+ENV NODE_ENV=production \
+    BUILD_SHA=$BUILD_SHA \
+    BUILD_ID=$BUILD_ID
 WORKDIR /app
 COPY --chown=node:node package.json package-lock.json ./
 COPY --chown=node:node --from=build /app/node_modules ./node_modules
