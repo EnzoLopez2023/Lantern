@@ -1,3 +1,4 @@
+import { type ReactNode } from 'react';
 import { AppBar, Box, Button, Container, IconButton, Stack, Toolbar, Typography } from '@mui/material';
 import {
   AdminPanelSettingsOutlined,
@@ -30,7 +31,7 @@ const links = [
   { to: '/admin', label: 'Admin', Icon: AdminPanelSettingsOutlined },
 ];
 
-function AppFrame() {
+function AuthedShell({ children }: { children: ReactNode }) {
   const { mode, toggleMode } = useThemeMode();
   const { pathname } = useLocation();
   return (
@@ -60,10 +61,18 @@ function AppFrame() {
           </Toolbar>
         </Container>
       </AppBar>
-      <AuthGate>
-        <Outlet />
-      </AuthGate>
+      {children}
     </>
+  );
+}
+
+function AppFrame() {
+  return (
+    <AuthGate>
+      <AuthedShell>
+        <Outlet />
+      </AuthedShell>
+    </AuthGate>
   );
 }
 
