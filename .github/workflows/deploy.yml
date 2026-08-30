@@ -161,33 +161,37 @@ jobs:
           } >> "$GITHUB_ENV"
           echo "Prior digest $previous_digest, instance ${prev_instance_id:-unknown}, commit ${prev_commit:-unknown}"
 
-      - name: Build and inspect digest-pinned candidate
+      - name: Build, push, and inspect digest-pinned candidate
         id: image
         shell: bash
         run: |
           set -euo pipefail
           BUILD_ID="$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          candidate="$IMAGE_REPOSITORY:$GITHUB_SHA-$BUILD_ID"
+          repo="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY"
+          candidate_tag="$repo:$GITHUB_SHA-$BUILD_ID"
 
-          az acr build --registry "$ACR" --image "$candidate" \
+          # The github-lantern-ci identity holds AcrPush (which includes AcrPull)
+          # but not the registry-Contributor action az acr build / az acr import
+          # need, so the image is built on the runner and pushed with docker.
+          az acr login --name "$ACR"
+          docker build \
             --build-arg "BUILD_SHA=$GITHUB_SHA" \
             --build-arg "BUILD_ID=$BUILD_ID" \
+            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
+            --label "org.opencontainers.image.version=$BUILD_ID" \
+            --tag "$candidate_tag" \
             .
+          docker push "$candidate_tag"
 
-          digest=""
-          for _ in $(seq 1 30); do
-            digest="$(az acr repository show --name "$ACR" --image "$candidate" \
-              --query digest --output tsv 2>/dev/null || true)"
-            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] && break
-            sleep 2
-          done
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$candidate_tag" | sed 's/.*@//')"
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            digest="$(az acr repository show --name "$ACR" \
+              --image "$IMAGE_REPOSITORY:$GITHUB_SHA-$BUILD_ID" --query digest --output tsv)"
+          fi
           [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
 
-          image_ref="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY@$digest"
-          az acr login --name "$ACR"
+          image_ref="$repo@$digest"
           docker pull "$image_ref"
-          docker image inspect "$image_ref" --format '{{json .RepoDigests}}' \
-            | jq -e --arg ref "$image_ref" 'index($ref) != null' > /dev/null
           docker image inspect "$image_ref" --format '{{json .Config.Volumes}}' \
             | jq -e '[((. // {}) | keys[]) | select(. == "/home" or startswith("/home/"))] | length == 0' > /dev/null
           revision="$(docker image inspect "$image_ref" \
@@ -354,8 +358,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          az acr import --name "$ACR" --source "$IMAGE_REFERENCE" \
-            --image "$IMAGE_REPOSITORY:latest" --force
+          latest="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY:latest"
+          docker tag "$IMAGE_REFERENCE" "$latest"
+          docker push "$latest"
           [[ "$(az acr repository show --name "$ACR" --image "$IMAGE_REPOSITORY:latest" \
             --query digest --output tsv)" == "$IMAGE_DIGEST" ]]
 
@@ -427,9 +432,11 @@ jobs:
           az webapp start --resource-group "$RG" --name "$WEBAPP" --output none
 
           if [[ "$PREVIOUS_LATEST_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-            az acr import --name "$ACR" \
-              --source "$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY@$PREVIOUS_LATEST_DIGEST" \
-              --image "$IMAGE_REPOSITORY:latest" --force || true
+            prev_latest="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY@$PREVIOUS_LATEST_DIGEST"
+            az acr login --name "$ACR" || true
+            docker pull "$prev_latest" \
+              && docker tag "$prev_latest" "$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY:latest" \
+              && docker push "$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY:latest" || true
           fi
 
           restored=0
