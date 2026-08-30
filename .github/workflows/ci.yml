@@ -1,9 +1,10 @@
 name: CI
 
+# Pull requests only. Pushes to main are validated by the first stage of
+# deploy.yml (npm run check + prod-dep audit + a full image build) before
+# anything ships, so running CI on main as well would just double the work.
 on:
   pull_request:
-  push:
-    branches: [main]
 
 permissions:
   contents: read
