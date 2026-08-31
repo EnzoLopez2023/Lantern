@@ -1,16 +1,20 @@
-export const bootstrapErrorMessage = (error: unknown): string => {
+const authErrorMessage = (error: unknown, fallback: string): string => {
   if (error instanceof Error && error.message.trim()) return error.message;
-  return 'Microsoft sign-in could not be initialized.';
+  return fallback;
 };
+
+export const bootstrapErrorMessage = (error: unknown): string =>
+  authErrorMessage(error, 'Microsoft sign-in could not be initialized.');
 
 export const authRedirectFailure = async (
   redirect: () => Promise<unknown>,
+  fallback = 'Microsoft sign-in could not be initialized.',
 ): Promise<string | null> => {
   try {
     await redirect();
     return null;
   } catch (error) {
-    return bootstrapErrorMessage(error);
+    return authErrorMessage(error, fallback);
   }
 };
 

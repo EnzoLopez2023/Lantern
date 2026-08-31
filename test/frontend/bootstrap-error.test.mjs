@@ -17,6 +17,13 @@ test('captures login redirect rejection for the recoverable auth UI', async () =
     'popup blocked',
   );
   assert.equal(await authRedirectFailure(async () => undefined), null);
+  assert.equal(
+    await authRedirectFailure(
+      async () => { throw null; },
+      'Microsoft sign-out could not be started.',
+    ),
+    'Microsoft sign-out could not be started.',
+  );
 });
 
 test('initializes MSAL before handling redirects and propagates recovery errors', async () => {

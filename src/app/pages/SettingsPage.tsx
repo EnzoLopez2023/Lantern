@@ -9,8 +9,6 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { useMsal } from '@azure/msal-react';
-import { authEnvironment } from '../auth/config';
 import {
   acceptConflictServerValue,
   claimLegacyEntries,
@@ -23,6 +21,7 @@ import {
   type LegacyClaimResult,
 } from '../storage/scopedStorage';
 import { useThemeMode } from '../../context/ThemeContext';
+import { SignOutButton } from '../auth/SignOutButton';
 
 const conflictValue = (value: string | null, tombstone: boolean): string => {
   if (tombstone) return 'Deleted (tombstone)';
@@ -40,7 +39,6 @@ const evidenceText = (evidence: unknown): string => {
 };
 
 export function SettingsPage() {
-  const { instance } = useMsal();
   const { mode, toggleMode } = useThemeMode();
   const [confirmed, setConfirmed] = useState(false);
   const [result, setResult] = useState<LegacyClaimResult | null>(null);
@@ -50,7 +48,6 @@ export function SettingsPage() {
     getStorageSyncStatus,
     getStorageSyncStatus,
   );
-  const activeAccount = instance.getActiveAccount();
   const pendingLabel = `${syncStatus.pendingCount}${syncStatus.pendingOverflow ? '+' : ''}`;
 
   return (
@@ -234,13 +231,9 @@ export function SettingsPage() {
           )}
         </Paper>
 
-        {!authEnvironment.developmentBypass && activeAccount && (
-          <Box>
-            <Button color="error" variant="outlined" onClick={() => void instance.logoutRedirect({ account: activeAccount })}>
-              Sign out
-            </Button>
-          </Box>
-        )}
+        <Box>
+          <SignOutButton />
+        </Box>
       </Stack>
     </Box>
   );

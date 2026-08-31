@@ -32,15 +32,6 @@ textarea {
   text-decoration: none;
 }
 
-.nav-link {
-  color: inherit !important;
-  min-width: 44px !important;
-}
-
-.nav-link.active {
-  background: color-mix(in srgb, currentColor 9%, transparent);
-}
-
 .app-page {
   width: min(100% - 32px, 1120px);
   margin: 0 auto;
