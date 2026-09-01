@@ -11,6 +11,8 @@
     "dev": "vite",
     "server": "node server/bootstrap.js",
     "start": "node server/bootstrap.js",
+    "icons": "node scripts/icons.mjs",
+    "icons:check": "node scripts/icons.mjs --check",
     "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json --noEmit --pretty false && tsc -p tsconfig.node.json --noEmit --pretty false",
@@ -22,7 +24,7 @@
     "backup": "node scripts/recovery.mjs backup",
     "backup:verify": "node scripts/recovery.mjs verify",
     "restore:verify": "node scripts/recovery.mjs restore-verify",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+    "check": "npm run icons:check && npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.25.0",
