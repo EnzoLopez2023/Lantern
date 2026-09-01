@@ -19,6 +19,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npm run check
+      - name: Run repository checks, including icon drift
+        run: npm run check
       - run: npm audit --omit=dev --audit-level=high
       - run: docker build --tag lantern-ci:${{ github.sha }} .
