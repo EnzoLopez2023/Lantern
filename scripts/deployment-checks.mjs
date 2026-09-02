@@ -152,6 +152,9 @@ export function validateTrivyReport(report, expectedArtifactName) {
     report.ArtifactType === 'container_image' &&
     isPlainObject(report.Metadata) &&
     /^sha256:[0-9a-f]{64}$/.test(report.Metadata.ImageID ?? '') &&
+    Array.isArray(report.Metadata.RepoDigests) &&
+    report.Metadata.RepoDigests.includes(expectedArtifactName) &&
+    report.Metadata.Reference === expectedArtifactName &&
     Array.isArray(report.Results) &&
     report.Results.length > 0 &&
     report.Results.every(result =>
@@ -237,11 +240,32 @@ export function validateCycloneDxReport(report, expectedPackage) {
 }
 
 export function validateSpdxReport(report, expectedImageReference) {
+  const expected = expectedDigestParts(expectedImageReference);
+  if (!expected) return false;
   const imageName = expectedImageReference
     ?.split('@')[0]
     .split('/')
     .at(-1);
   const packageIds = new Set();
+  const rootPackage = Array.isArray(report?.packages)
+    ? report.packages.find(packageEntry =>
+      isPlainObject(packageEntry) &&
+      packageEntry.primaryPackagePurpose === 'CONTAINER' &&
+      /^SPDXRef-DocumentRoot-Image-/.test(packageEntry.SPDXID ?? ''))
+    : null;
+  const rootPurl = (Array.isArray(rootPackage?.externalRefs)
+    ? rootPackage.externalRefs.find(reference =>
+      isPlainObject(reference) &&
+      reference.referenceCategory === 'PACKAGE-MANAGER' &&
+      reference.referenceType === 'purl' &&
+      nonEmptyString(reference.referenceLocator))
+    : null)?.referenceLocator;
+  let decodedRootPurl = '';
+  try {
+    decodedRootPurl = decodeURIComponent(rootPurl ?? '');
+  } catch {
+    return false;
+  }
   return Boolean(
     isPlainObject(report) &&
     ['SPDX-2.2', 'SPDX-2.3'].includes(report.spdxVersion) &&
@@ -272,7 +296,22 @@ export function validateSpdxReport(report, expectedImageReference) {
       packageIds.add(packageEntry.SPDXID);
       return true;
     }) &&
-    Array.isArray(report.relationships),
+    isPlainObject(rootPackage) &&
+    rootPackage.name === report.name &&
+    rootPackage.versionInfo === expected.digest &&
+    Array.isArray(rootPackage.checksums) &&
+    rootPackage.checksums.some(checksum =>
+      isPlainObject(checksum) &&
+      checksum.algorithm === 'SHA256' &&
+      checksum.checksumValue === expected.digestHex) &&
+    /^pkg:oci\//.test(decodedRootPurl) &&
+    decodedRootPurl.includes(`@${expected.digest}`) &&
+    Array.isArray(report.relationships) &&
+    report.relationships.some(relationship =>
+      isPlainObject(relationship) &&
+      relationship.spdxElementId === 'SPDXRef-DOCUMENT' &&
+      relationship.relatedSpdxElement === rootPackage.SPDXID &&
+      relationship.relationshipType === 'DESCRIBES'),
   );
 }
 

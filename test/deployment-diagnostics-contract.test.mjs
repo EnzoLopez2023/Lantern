@@ -18,7 +18,7 @@ import {
   validateTrivyReport,
 } from '../scripts/deployment-checks.mjs';
 
-const REVIEWED_CONTRACT_HEAD = 'f45790e9df7c9fabbc53dd04e6055a59d6f28f39';
+const REVIEWED_CONTRACT_HEAD = '6e59c97a52820e15539ad8434788fcfb95a75730';
 const REVIEWED_HELPER_BLOB = 'd31a00faad5832832bf0b91e96387f5f77645700';
 const REVIEWED_ACTION_BLOB = 'ff7330e29f4f15abe61bf8c4f5520ff5f1674fc4';
 
@@ -144,7 +144,7 @@ test('missing and malformed checker reports remain execution failures', () => {
     SPDXID: 'SPDXRef-DOCUMENT',
     packages: [null],
   }), false);
-  assert.equal(validateSpdxReport({
+  const spdxReport = {
     spdxVersion: 'SPDX-2.3',
     dataLicense: 'CC0-1.0',
     SPDXID: 'SPDXRef-DOCUMENT',
@@ -155,25 +155,55 @@ test('missing and malformed checker reports remain execution failures', () => {
       creators: ['Organization: Anchore, Inc', 'Tool: syft-1.42.3'],
     },
     packages: [{
-      SPDXID: 'SPDXRef-Package-example',
-      name: 'example',
+      SPDXID: 'SPDXRef-DocumentRoot-Image-lantern',
+      name: 'lantern',
+      versionInfo: `sha256:${'a'.repeat(64)}`,
       downloadLocation: 'NOASSERTION',
       filesAnalyzed: false,
+      checksums: [{
+        algorithm: 'SHA256',
+        checksumValue: 'a'.repeat(64),
+      }],
+      externalRefs: [{
+        referenceCategory: 'PACKAGE-MANAGER',
+        referenceType: 'purl',
+        referenceLocator: `pkg:oci/lantern@sha256%3A${'a'.repeat(64)}?arch=amd64`,
+      }],
+      primaryPackagePurpose: 'CONTAINER',
     }],
-    relationships: [],
-  }, candidate), true);
+    relationships: [{
+      spdxElementId: 'SPDXRef-DOCUMENT',
+      relatedSpdxElement: 'SPDXRef-DocumentRoot-Image-lantern',
+      relationshipType: 'DESCRIBES',
+    }],
+  };
+  assert.equal(validateSpdxReport(spdxReport, candidate), true);
+  const staleSpdx = structuredClone(spdxReport);
+  staleSpdx.packages[0].versionInfo = `sha256:${'c'.repeat(64)}`;
+  staleSpdx.packages[0].checksums[0].checksumValue = 'c'.repeat(64);
+  staleSpdx.packages[0].externalRefs[0].referenceLocator =
+    `pkg:oci/lantern@sha256%3A${'c'.repeat(64)}?arch=amd64`;
+  assert.equal(validateSpdxReport(staleSpdx, candidate), false);
   assert.equal(validateTrivyReport({
     SchemaVersion: 0,
     ArtifactName: candidate,
     ArtifactType: 'container_image',
-    Metadata: { ImageID: `sha256:${'b'.repeat(64)}` },
+    Metadata: {
+      ImageID: `sha256:${'b'.repeat(64)}`,
+      RepoDigests: [candidate],
+      Reference: candidate,
+    },
     Results: [{ Target: 'example', Vulnerabilities: {} }],
   }, candidate), false);
   assert.equal(validateTrivyReport({
     SchemaVersion: 2,
     ArtifactName: candidate,
     ArtifactType: 'container_image',
-    Metadata: { ImageID: `sha256:${'b'.repeat(64)}` },
+    Metadata: {
+      ImageID: `sha256:${'b'.repeat(64)}`,
+      RepoDigests: [candidate],
+      Reference: candidate,
+    },
     Results: [{
       Target: 'example',
       Class: 'os-pkgs',
@@ -185,7 +215,11 @@ test('missing and malformed checker reports remain execution failures', () => {
     SchemaVersion: 2,
     ArtifactName: candidate,
     ArtifactType: 'container_image',
-    Metadata: { ImageID: `sha256:${'b'.repeat(64)}` },
+    Metadata: {
+      ImageID: `sha256:${'b'.repeat(64)}`,
+      RepoDigests: [candidate],
+      Reference: candidate,
+    },
     Results: [{
       Target: 'example',
       Class: 'os-pkgs',
@@ -198,6 +232,23 @@ test('missing and malformed checker reports remain execution failures', () => {
       }],
     }],
   }, candidate), true);
+  const staleTrivy = {
+    SchemaVersion: 2,
+    ArtifactName: candidate,
+    ArtifactType: 'container_image',
+    Metadata: {
+      ImageID: `sha256:${'b'.repeat(64)}`,
+      RepoDigests: [`acr.example/lantern@sha256:${'c'.repeat(64)}`],
+      Reference: `acr.example/lantern@sha256:${'c'.repeat(64)}`,
+    },
+    Results: [{
+      Target: 'example',
+      Class: 'os-pkgs',
+      Type: 'debian',
+      Vulnerabilities: [],
+    }],
+  };
+  assert.equal(validateTrivyReport(staleTrivy, candidate), false);
   assert.equal(validateReadinessReport({}), false);
   assert.equal(validateReadinessReport({ status: 'not_ready', database: null }), false);
   assert.equal(validateReadinessReport({ status: 'not_ready', database: 'unavailable' }), true);
@@ -219,6 +270,18 @@ test('missing and malformed checker reports remain execution failures', () => {
       runDetails: { builder: { id: 'https://example.test/builder' } },
     },
   }, candidate, 'slsaprovenance1'), true);
+  assert.equal(validateCosignReport({
+    _type: 'https://in-toto.io/Statement/v0.1',
+    predicateType: 'https://spdx.dev/Document',
+    subject: [{ name: 'lantern', digest: { sha256: 'a'.repeat(64) } }],
+    predicate: spdxReport,
+  }, candidate, 'spdxjson'), true);
+  assert.equal(validateCosignReport({
+    _type: 'https://in-toto.io/Statement/v0.1',
+    predicateType: 'https://spdx.dev/Document',
+    subject: [{ name: 'lantern', digest: { sha256: 'a'.repeat(64) } }],
+    predicate: staleSpdx,
+  }, candidate, 'spdxjson'), false);
 });
 
 test('checker runner terminates the complete process group', {
