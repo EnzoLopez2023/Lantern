@@ -266,12 +266,9 @@ export function validateCycloneDxReport(report, expectedPackage) {
   );
 }
 
-export function validateSpdxReport(report, expectedImageReference, expectedImageId) {
+export function validateSpdxReport(report, expectedImageReference) {
   const expected = expectedDigestParts(expectedImageReference);
-  const configDigest = /^sha256:[0-9a-f]{64}$/.test(expectedImageId ?? '')
-    ? expectedImageId
-    : null;
-  if (!expected || !configDigest) return false;
+  if (!expected) return false;
   const imageName = expectedImageReference
     ?.split('@')[0]
     .split('/')
@@ -333,9 +330,9 @@ export function validateSpdxReport(report, expectedImageReference, expectedImage
     rootPackage.checksums.some(checksum =>
       isPlainObject(checksum) &&
       checksum.algorithm === 'SHA256' &&
-      checksum.checksumValue === configDigest.slice('sha256:'.length)) &&
+      checksum.checksumValue === expected.digestHex) &&
     /^pkg:oci\//.test(decodedRootPurl) &&
-    decodedRootPurl.includes(`@${configDigest}`) &&
+    decodedRootPurl.includes(`@${expected.digest}`) &&
     Array.isArray(report.relationships) &&
     report.relationships.some(relationship =>
       isPlainObject(relationship) &&
@@ -366,13 +363,7 @@ function expectedDigestParts(expectedImageReference) {
   return { digest, digestHex: digest.slice('sha256:'.length), repository };
 }
 
-function statementMatches(
-  statement,
-  digestHex,
-  predicateKind,
-  expectedImageReference,
-  expectedImageId,
-) {
+function statementMatches(statement, digestHex, predicateKind, expectedImageReference) {
   const predicateTypes = {
     slsaprovenance1: 'https://slsa.dev/provenance/v1',
     spdxjson: 'https://spdx.dev/Document',
@@ -394,7 +385,7 @@ function statementMatches(
         isPlainObject(statement.predicate.runDetails) &&
         isPlainObject(statement.predicate.runDetails.builder) &&
         nonEmptyString(statement.predicate.runDetails.builder.id)
-      : validateSpdxReport(statement.predicate, expectedImageReference, expectedImageId)),
+      : validateSpdxReport(statement.predicate, expectedImageReference)),
   );
 }
 
@@ -420,7 +411,6 @@ export function validateCosignReport(
   report,
   expectedImageReference,
   kind,
-  expectedImageId = null,
 ) {
   const expected = expectedDigestParts(expectedImageReference);
   if (!expected || !['signature', 'slsaprovenance1', 'spdxjson'].includes(kind)) return false;
@@ -454,7 +444,6 @@ export function validateCosignReport(
       expected.digestHex,
       kind,
       expectedImageReference,
-      expectedImageId,
     );
   });
 }
@@ -749,20 +738,6 @@ function protectedConfiguration() {
   return invariants.every(invariant => invariant.matches) ? 0 : 1;
 }
 
-function candidateImageId() {
-  const imageId = runCaptured('docker', [
-    'image',
-    'inspect',
-    '--format',
-    '{{.Id}}',
-    process.env.IMAGE_REFERENCE,
-  ]).trim();
-  if (!/^sha256:[0-9a-f]{64}$/.test(imageId)) {
-    throw new Error('candidate image config digest is malformed');
-  }
-  return imageId;
-}
-
 function imageSbom() {
   const paths = reportPaths('image-sbom.spdx.json');
   prepareReport(paths);
@@ -777,11 +752,10 @@ function imageSbom() {
     { ...process.env, SYFT_CHECK_FOR_APP_UPDATE: 'false' },
   );
   if (status !== 0) return status;
-  const imageId = candidateImageId();
   validateAndPublish(
     paths,
     'image SBOM',
-    report => validateSpdxReport(report, process.env.IMAGE_REFERENCE, imageId),
+    report => validateSpdxReport(report, process.env.IMAGE_REFERENCE),
   );
   return 0;
 }
@@ -836,7 +810,6 @@ function cosignVerification({ report, args, kind }) {
   const paths = reportPaths(report);
   prepareReport(paths);
   const status = runToFile('cosign', args, paths.pending);
-  const imageId = kind === 'spdxjson' ? candidateImageId() : null;
   validateAndPublish(
     paths,
     'Cosign',
@@ -844,7 +817,6 @@ function cosignVerification({ report, args, kind }) {
       value,
       process.env.IMAGE_REFERENCE,
       kind,
-      imageId,
     ),
   );
   return status;
