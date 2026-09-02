@@ -74,21 +74,71 @@ test('missing and malformed checker reports remain execution failures', () => {
   assert.equal(classifyProcess({ exitCode: 1 }).ok, true);
 
   assert.equal(validateNpmAuditReport({ metadata: { vulnerabilities: {} } }), false);
+  const candidate = `acr.example/lantern@sha256:${'a'.repeat(64)}`;
   assert.equal(validateNpmAuditReport({
+    auditReportVersion: 2,
+    vulnerabilities: {
+      qs: {
+        name: 'qs',
+        severity: 'moderate',
+        isDirect: false,
+        via: [{
+          source: 1,
+          name: 'qs',
+          dependency: 'qs',
+          title: 'advisory',
+          url: 'https://example.test/advisory',
+          severity: 'moderate',
+          range: '<1.0.0',
+        }],
+        effects: [],
+        range: '<1.0.0',
+        nodes: ['node_modules/qs'],
+        fixAvailable: true,
+      },
+    },
     metadata: {
-      vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 },
+      vulnerabilities: { info: 0, low: 0, moderate: 1, high: 0, critical: 0, total: 1 },
+      dependencies: { prod: 1, dev: 0, optional: 0, peer: 0, peerOptional: 0, total: 1 },
     },
   }), true);
   assert.equal(validateCycloneDxReport({
     bomFormat: 'CycloneDX',
-    specVersion: '1.6',
+    specVersion: 'garbage',
     components: [null],
   }), false);
   assert.equal(validateCycloneDxReport({
     bomFormat: 'CycloneDX',
-    specVersion: '1.6',
-    components: [{ type: 'library', name: 'example' }],
-  }), true);
+    specVersion: '1.5',
+    components: [null],
+  }), false);
+  assert.equal(validateCycloneDxReport({
+    bomFormat: 'CycloneDX',
+    specVersion: '1.5',
+    serialNumber: 'urn:uuid:d135c669-a636-488d-85e0-11bea7067646',
+    version: 1,
+    metadata: {
+      timestamp: '2026-09-02T12:00:00.000Z',
+      tools: [{ vendor: 'npm', name: 'cli', version: '11.13.0' }],
+      component: {
+        name: 'lantern',
+        version: '0.1.0',
+        purl: 'pkg:npm/lantern@0.1.0',
+      },
+    },
+    components: [{
+      type: 'library',
+      name: 'example',
+      version: '1.0.0',
+      purl: 'pkg:npm/example@1.0.0',
+    }],
+    dependencies: [],
+  }, { name: 'lantern', version: '0.1.0' }), true);
+  assert.equal(validateSpdxReport({
+    spdxVersion: 'garbage',
+    SPDXID: 'SPDXRef-DOCUMENT',
+    packages: [null],
+  }), false);
   assert.equal(validateSpdxReport({
     spdxVersion: 'SPDX-2.3',
     SPDXID: 'SPDXRef-DOCUMENT',
@@ -96,27 +146,79 @@ test('missing and malformed checker reports remain execution failures', () => {
   }), false);
   assert.equal(validateSpdxReport({
     spdxVersion: 'SPDX-2.3',
+    dataLicense: 'CC0-1.0',
     SPDXID: 'SPDXRef-DOCUMENT',
-    packages: [{ SPDXID: 'SPDXRef-Package-example', name: 'example' }],
-  }), true);
+    name: 'lantern',
+    documentNamespace: 'https://anchore.com/syft/image/lantern-example',
+    creationInfo: {
+      created: '2026-09-02T12:00:00.000Z',
+      creators: ['Organization: Anchore, Inc', 'Tool: syft-1.42.3'],
+    },
+    packages: [{
+      SPDXID: 'SPDXRef-Package-example',
+      name: 'example',
+      downloadLocation: 'NOASSERTION',
+      filesAnalyzed: false,
+    }],
+    relationships: [],
+  }, candidate), true);
   assert.equal(validateTrivyReport({
-    SchemaVersion: 2,
-    ArtifactName: 'example',
+    SchemaVersion: 0,
+    ArtifactName: candidate,
+    ArtifactType: 'container_image',
+    Metadata: { ImageID: `sha256:${'b'.repeat(64)}` },
     Results: [{ Target: 'example', Vulnerabilities: {} }],
-  }), false);
+  }, candidate), false);
   assert.equal(validateTrivyReport({
     SchemaVersion: 2,
-    ArtifactName: 'example',
+    ArtifactName: candidate,
+    ArtifactType: 'container_image',
+    Metadata: { ImageID: `sha256:${'b'.repeat(64)}` },
     Results: [{
       Target: 'example',
-      Vulnerabilities: [{ VulnerabilityID: 'CVE-2026-0001', Severity: 'HIGH' }],
+      Class: 'os-pkgs',
+      Type: 'debian',
+      Vulnerabilities: [{}],
     }],
-  }), true);
+  }, candidate), false);
+  assert.equal(validateTrivyReport({
+    SchemaVersion: 2,
+    ArtifactName: candidate,
+    ArtifactType: 'container_image',
+    Metadata: { ImageID: `sha256:${'b'.repeat(64)}` },
+    Results: [{
+      Target: 'example',
+      Class: 'os-pkgs',
+      Type: 'debian',
+      Vulnerabilities: [{
+        VulnerabilityID: 'CVE-2026-0001',
+        PkgName: 'example',
+        InstalledVersion: '1.0.0',
+        Severity: 'HIGH',
+      }],
+    }],
+  }, candidate), true);
   assert.equal(validateReadinessReport({}), false);
+  assert.equal(validateReadinessReport({ status: 'not_ready', database: null }), false);
   assert.equal(validateReadinessReport({ status: 'not_ready', database: 'unavailable' }), true);
-  assert.equal(validateCosignReport({}), false);
-  assert.equal(validateCosignReport([]), false);
-  assert.equal(validateCosignReport([{ critical: { identity: 'workflow' } }]), true);
+  assert.equal(validateCosignReport({ arbitrary: true }, candidate, 'signature'), false);
+  assert.equal(validateCosignReport([], candidate, 'signature'), false);
+  assert.equal(validateCosignReport([{
+    critical: {
+      identity: { 'docker-reference': 'acr.example/lantern' },
+      image: { 'docker-manifest-digest': `sha256:${'a'.repeat(64)}` },
+      type: 'cosign container image signature',
+    },
+  }], candidate, 'signature'), true);
+  assert.equal(validateCosignReport({
+    _type: 'https://in-toto.io/Statement/v1',
+    predicateType: 'https://slsa.dev/provenance/v1',
+    subject: [{ name: 'lantern', digest: { sha256: 'a'.repeat(64) } }],
+    predicate: {
+      buildDefinition: { buildType: 'https://example.test/build' },
+      runDetails: { builder: { id: 'https://example.test/builder' } },
+    },
+  }, candidate, 'slsaprovenance1'), true);
 });
 
 test('checker runner terminates the complete process group', {

@@ -88,7 +88,13 @@ function publish(paths) {
 
 export function validateNpmAuditReport(report) {
   const vulnerabilities = report?.metadata?.vulnerabilities;
-  if (!vulnerabilities || Array.isArray(vulnerabilities) || typeof vulnerabilities !== 'object') {
+  const dependencyCounts = report?.metadata?.dependencies;
+  if (
+    report?.auditReportVersion !== 2 ||
+    !isPlainObject(report.vulnerabilities) ||
+    !isPlainObject(vulnerabilities) ||
+    !isPlainObject(dependencyCounts)
+  ) {
     return false;
   }
   const severities = ['info', 'low', 'moderate', 'high', 'critical'];
@@ -96,24 +102,71 @@ export function validateNpmAuditReport(report) {
     Number.isSafeInteger(vulnerabilities[key]) && vulnerabilities[key] >= 0)) {
     return false;
   }
-  return severities.reduce((total, key) => total + vulnerabilities[key], 0) === vulnerabilities.total;
+  if (!['prod', 'dev', 'optional', 'peer', 'peerOptional', 'total'].every(key =>
+    Number.isSafeInteger(dependencyCounts[key]) && dependencyCounts[key] >= 0)) {
+    return false;
+  }
+  const entries = Object.entries(report.vulnerabilities);
+  if (severities.reduce((total, key) => total + vulnerabilities[key], 0) !== vulnerabilities.total) {
+    return false;
+  }
+  if (entries.length !== vulnerabilities.total) return false;
+  const counted = Object.fromEntries(severities.map(severity => [severity, 0]));
+  for (const [name, vulnerability] of entries) {
+    if (
+      !isPlainObject(vulnerability) ||
+      vulnerability.name !== name ||
+      !severities.includes(vulnerability.severity) ||
+      typeof vulnerability.isDirect !== 'boolean' ||
+      !Array.isArray(vulnerability.via) ||
+      vulnerability.via.length === 0 ||
+      !vulnerability.via.every(via =>
+        typeof via === 'string' ||
+        (isPlainObject(via) &&
+          Number.isSafeInteger(via.source) &&
+          typeof via.name === 'string' &&
+          typeof via.dependency === 'string' &&
+          typeof via.title === 'string' &&
+          typeof via.url === 'string' &&
+          severities.includes(via.severity) &&
+          typeof via.range === 'string')) ||
+      !Array.isArray(vulnerability.effects) ||
+      typeof vulnerability.range !== 'string' ||
+      !Array.isArray(vulnerability.nodes) ||
+      !vulnerability.nodes.every(node => typeof node === 'string') ||
+      !(typeof vulnerability.fixAvailable === 'boolean' || isPlainObject(vulnerability.fixAvailable))
+    ) {
+      return false;
+    }
+    counted[vulnerability.severity] += 1;
+  }
+  return severities.every(severity => counted[severity] === vulnerabilities[severity]);
 }
 
-export function validateTrivyReport(report) {
+export function validateTrivyReport(report, expectedArtifactName) {
+  const allowedSeverity = new Set(['HIGH', 'CRITICAL']);
   return Boolean(
     isPlainObject(report) &&
-    Number.isSafeInteger(report.SchemaVersion) &&
-    typeof report.ArtifactName === 'string' &&
+    report.SchemaVersion === 2 &&
+    report.ArtifactName === expectedArtifactName &&
+    report.ArtifactType === 'container_image' &&
+    isPlainObject(report.Metadata) &&
+    /^sha256:[0-9a-f]{64}$/.test(report.Metadata.ImageID ?? '') &&
     Array.isArray(report.Results) &&
+    report.Results.length > 0 &&
     report.Results.every(result =>
       isPlainObject(result) &&
-      typeof result.Target === 'string' &&
+      nonEmptyString(result.Target) &&
+      nonEmptyString(result.Class) &&
+      nonEmptyString(result.Type) &&
       (result.Vulnerabilities == null ||
         (Array.isArray(result.Vulnerabilities) &&
           result.Vulnerabilities.every(vulnerability =>
             isPlainObject(vulnerability) &&
-            typeof vulnerability.VulnerabilityID === 'string' &&
-            typeof vulnerability.Severity === 'string')))),
+            nonEmptyString(vulnerability.VulnerabilityID) &&
+            nonEmptyString(vulnerability.PkgName) &&
+            nonEmptyString(vulnerability.InstalledVersion) &&
+            allowedSeverity.has(vulnerability.Severity))))),
   );
 }
 
@@ -121,50 +174,194 @@ function isPlainObject(value) {
   return Boolean(value && !Array.isArray(value) && typeof value === 'object');
 }
 
-export function validateCycloneDxReport(report) {
-  return Boolean(
-    isPlainObject(report) &&
-    report.bomFormat === 'CycloneDX' &&
-    typeof report.specVersion === 'string' &&
-    Array.isArray(report.components) &&
-    report.components.every(component =>
-      isPlainObject(component) &&
-      typeof component.type === 'string' &&
-      typeof component.name === 'string'),
+function nonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function validTimestamp(value) {
+  return (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z$/.test(value ?? '') &&
+    Number.isFinite(Date.parse(value))
   );
 }
 
-export function validateSpdxReport(report) {
+export function validateCycloneDxReport(report, expectedPackage) {
+  const componentTypes = new Set([
+    'application',
+    'container',
+    'cryptographic-asset',
+    'data',
+    'device',
+    'file',
+    'firmware',
+    'framework',
+    'library',
+    'machine-learning-model',
+    'operating-system',
+    'platform',
+  ]);
+  const root = report?.metadata?.component;
+  const expectedPurl = expectedPackage
+    ? `pkg:npm/${expectedPackage.name}@${expectedPackage.version}`
+    : null;
   return Boolean(
     isPlainObject(report) &&
-    typeof report.spdxVersion === 'string' &&
+    report.bomFormat === 'CycloneDX' &&
+    ['1.5', '1.6'].includes(report.specVersion) &&
+    /^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+      .test(report.serialNumber ?? '') &&
+    Number.isSafeInteger(report.version) &&
+    report.version >= 1 &&
+    isPlainObject(report.metadata) &&
+    validTimestamp(report.metadata.timestamp) &&
+    Array.isArray(report.metadata.tools) &&
+    report.metadata.tools.some(tool =>
+      isPlainObject(tool) &&
+      tool.vendor === 'npm' &&
+      tool.name === 'cli' &&
+      nonEmptyString(tool.version)) &&
+    isPlainObject(root) &&
+    nonEmptyString(root.name) &&
+    nonEmptyString(root.version) &&
+    (!expectedPurl || root.purl === expectedPurl) &&
+    Array.isArray(report.components) &&
+    report.components.length > 0 &&
+    report.components.every(component =>
+      isPlainObject(component) &&
+      componentTypes.has(component.type) &&
+      nonEmptyString(component.name) &&
+      nonEmptyString(component.version) &&
+      /^pkg:npm\//.test(component.purl ?? '')) &&
+    Array.isArray(report.dependencies),
+  );
+}
+
+export function validateSpdxReport(report, expectedImageReference) {
+  const imageName = expectedImageReference
+    ?.split('@')[0]
+    .split('/')
+    .at(-1);
+  const packageIds = new Set();
+  return Boolean(
+    isPlainObject(report) &&
+    ['SPDX-2.2', 'SPDX-2.3'].includes(report.spdxVersion) &&
+    report.dataLicense === 'CC0-1.0' &&
     report.SPDXID === 'SPDXRef-DOCUMENT' &&
+    nonEmptyString(report.name) &&
+    (!imageName ||
+      report.name.toLowerCase().includes(imageName.toLowerCase()) ||
+      String(report.documentNamespace).toLowerCase().includes(imageName.toLowerCase())) &&
+    /^https:\/\/anchore\.com\/syft\/image\//.test(report.documentNamespace ?? '') &&
+    isPlainObject(report.creationInfo) &&
+    validTimestamp(report.creationInfo.created) &&
+    Array.isArray(report.creationInfo.creators) &&
+    report.creationInfo.creators.includes('Tool: syft-1.42.3') &&
     Array.isArray(report.packages) &&
-    report.packages.every(packageEntry =>
-      isPlainObject(packageEntry) &&
-      typeof packageEntry.SPDXID === 'string' &&
-      typeof packageEntry.name === 'string'),
+    report.packages.length > 0 &&
+    report.packages.every(packageEntry => {
+      if (
+        !isPlainObject(packageEntry) ||
+        !/^SPDXRef-[A-Za-z0-9.-]+$/.test(packageEntry.SPDXID ?? '') ||
+        packageIds.has(packageEntry.SPDXID) ||
+        !nonEmptyString(packageEntry.name) ||
+        !nonEmptyString(packageEntry.downloadLocation) ||
+        typeof packageEntry.filesAnalyzed !== 'boolean'
+      ) {
+        return false;
+      }
+      packageIds.add(packageEntry.SPDXID);
+      return true;
+    }) &&
+    Array.isArray(report.relationships),
   );
 }
 
 export function validateReadinessReport(report) {
   if (!isPlainObject(report) || !['ready', 'not_ready'].includes(report.status)) return false;
-  if (report.status === 'not_ready') return Object.hasOwn(report, 'database');
+  if (report.status === 'not_ready') return report.database === 'unavailable';
   return Boolean(
     isPlainObject(report.database) &&
-    typeof report.database.authority === 'string' &&
-    typeof report.database.journalMode === 'string' &&
-    typeof report.database.schemaIdentity === 'string' &&
-    typeof report.lifecycle === 'string',
+    nonEmptyString(report.database.authority) &&
+    nonEmptyString(report.database.journalMode) &&
+    /^(\d{3,}[-_][^,]+\.sql)(,\d{3,}[-_][^,]+\.sql)*$/.test(report.database.schemaIdentity ?? '') &&
+    nonEmptyString(report.lifecycle) &&
+    Array.isArray(report.workers) &&
+    isPlainObject(report.build) &&
+    report.build.app === 'lantern',
   );
 }
 
-export function validateCosignReport(report) {
-  if (Array.isArray(report)) {
-    return report.length > 0 && report.every(entry =>
-      isPlainObject(entry) && Object.keys(entry).length > 0);
+function expectedDigestParts(expectedImageReference) {
+  const [repository, digest] = String(expectedImageReference ?? '').split('@');
+  if (!repository || !/^sha256:[0-9a-f]{64}$/.test(digest ?? '')) return null;
+  return { digest, digestHex: digest.slice('sha256:'.length), repository };
+}
+
+function statementMatches(statement, digestHex, predicateKind, expectedImageReference) {
+  const predicateTypes = {
+    slsaprovenance1: 'https://slsa.dev/provenance/v1',
+    spdxjson: 'https://spdx.dev/Document',
+  };
+  const expectedPredicateType = predicateTypes[predicateKind];
+  return Boolean(
+    isPlainObject(statement) &&
+    ['https://in-toto.io/Statement/v0.1', 'https://in-toto.io/Statement/v1'].includes(statement._type) &&
+    statement.predicateType === expectedPredicateType &&
+    Array.isArray(statement.subject) &&
+    statement.subject.some(subject =>
+      isPlainObject(subject) &&
+      isPlainObject(subject.digest) &&
+      subject.digest.sha256 === digestHex) &&
+    (predicateKind === 'slsaprovenance1'
+      ? isPlainObject(statement.predicate) &&
+        isPlainObject(statement.predicate.buildDefinition) &&
+        nonEmptyString(statement.predicate.buildDefinition.buildType) &&
+        isPlainObject(statement.predicate.runDetails) &&
+        isPlainObject(statement.predicate.runDetails.builder) &&
+        nonEmptyString(statement.predicate.runDetails.builder.id)
+      : validateSpdxReport(statement.predicate, expectedImageReference)),
+  );
+}
+
+function decodeEnvelopeStatement(entry) {
+  if (
+    !isPlainObject(entry) ||
+    !nonEmptyString(entry.payloadType) ||
+    !nonEmptyString(entry.payload) ||
+    !Array.isArray(entry.signatures) ||
+    entry.signatures.length === 0 ||
+    !entry.signatures.every(signature => isPlainObject(signature) && nonEmptyString(signature.sig))
+  ) {
+    return null;
   }
-  return isPlainObject(report) && Object.keys(report).length > 0;
+  try {
+    return JSON.parse(Buffer.from(entry.payload, 'base64').toString('utf8'));
+  } catch {
+    return null;
+  }
+}
+
+export function validateCosignReport(report, expectedImageReference, kind) {
+  const expected = expectedDigestParts(expectedImageReference);
+  if (!expected || !['signature', 'slsaprovenance1', 'spdxjson'].includes(kind)) return false;
+  const entries = Array.isArray(report) ? report : [report];
+  if (entries.length === 0) return false;
+  if (kind === 'signature') {
+    return entries.every(entry =>
+      isPlainObject(entry) &&
+      isPlainObject(entry.critical) &&
+      isPlainObject(entry.critical.identity) &&
+      entry.critical.identity['docker-reference'] === expected.repository &&
+      isPlainObject(entry.critical.image) &&
+      entry.critical.image['docker-manifest-digest'] === expected.digest &&
+      entry.critical.type === 'cosign container image signature');
+  }
+  return entries.every(entry => {
+    const statement = nonEmptyString(entry?.payload)
+      ? decodeEnvelopeStatement(entry)
+      : entry;
+    return statementMatches(statement, expected.digestHex, kind, expectedImageReference);
+  });
 }
 
 function validateAndPublish(paths, label, validator) {
@@ -199,7 +396,12 @@ function sourceSbom() {
     paths.pending,
   );
   if (status !== 0) return status;
-  validateAndPublish(paths, 'source SBOM', validateCycloneDxReport);
+  const packageManifest = JSON.parse(readFileSync('package.json', 'utf8'));
+  validateAndPublish(
+    paths,
+    'source SBOM',
+    report => validateCycloneDxReport(report, packageManifest),
+  );
   return 0;
 }
 
@@ -242,6 +444,7 @@ function migrationCompatibility() {
     : [];
   const compatible =
     readiness.report?.status === 'ready' &&
+    readiness.report?.database?.authority === 'sqlite' &&
     current.length > 0 &&
     current.every((name, index) => candidate[index] === name);
 
@@ -465,7 +668,11 @@ function imageSbom() {
     { ...process.env, SYFT_CHECK_FOR_APP_UPDATE: 'false' },
   );
   if (status !== 0) return status;
-  validateAndPublish(paths, 'image SBOM', validateSpdxReport);
+  validateAndPublish(
+    paths,
+    'image SBOM',
+    report => validateSpdxReport(report, process.env.IMAGE_REFERENCE),
+  );
   return 0;
 }
 
@@ -500,15 +707,23 @@ function imageScan() {
   }
   if (status.signal) return 128;
   if (status.status !== 0) return status.status ?? 1;
-  validateAndPublish(paths, 'Trivy', validateTrivyReport);
+  validateAndPublish(
+    paths,
+    'Trivy',
+    report => validateTrivyReport(report, process.env.IMAGE_REFERENCE),
+  );
   return 0;
 }
 
-function cosignVerification({ report, args }) {
+function cosignVerification({ report, args, kind }) {
   const paths = reportPaths(report);
   prepareReport(paths);
   const status = runToFile('cosign', args, paths.pending);
-  validateAndPublish(paths, 'Cosign', validateCosignReport);
+  validateAndPublish(
+    paths,
+    'Cosign',
+    value => validateCosignReport(value, process.env.IMAGE_REFERENCE, kind),
+  );
   return status;
 }
 
@@ -517,6 +732,7 @@ function signatureVerification() {
     `https://github.com/${process.env.GITHUB_REPOSITORY}/.github/workflows/deploy.yml@${process.env.GITHUB_REF}`;
   return cosignVerification({
     report: 'cosign-signature.json',
+    kind: 'signature',
     args: [
       'verify',
       '--certificate-identity',
@@ -533,6 +749,7 @@ function provenanceVerification() {
     `https://github.com/${process.env.GITHUB_REPOSITORY}/.github/workflows/deploy.yml@${process.env.GITHUB_REF}`;
   return cosignVerification({
     report: 'cosign-provenance.json',
+    kind: 'slsaprovenance1',
     args: [
       'verify-attestation',
       '--type',
@@ -551,6 +768,7 @@ function sbomAttestationVerification() {
     `https://github.com/${process.env.GITHUB_REPOSITORY}/.github/workflows/deploy.yml@${process.env.GITHUB_REF}`;
   return cosignVerification({
     report: 'cosign-sbom.json',
+    kind: 'spdxjson',
     args: [
       'verify-attestation',
       '--type',
