@@ -10,8 +10,11 @@ import {
 } from '../scripts/deployment-diagnostic.mjs';
 import { runWithTimeout } from '../scripts/deployment-check-runner.mjs';
 import {
+  validateCycloneDxReport,
   validateCosignReport,
   validateNpmAuditReport,
+  validateReadinessReport,
+  validateSpdxReport,
   validateTrivyReport,
 } from '../scripts/deployment-checks.mjs';
 
@@ -76,9 +79,43 @@ test('missing and malformed checker reports remain execution failures', () => {
       vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 },
     },
   }), true);
-  assert.equal(validateTrivyReport({ Results: [{ Vulnerabilities: {} }] }), false);
-  assert.equal(validateTrivyReport({ Results: [{ Vulnerabilities: [] }] }), true);
+  assert.equal(validateCycloneDxReport({
+    bomFormat: 'CycloneDX',
+    specVersion: '1.6',
+    components: [null],
+  }), false);
+  assert.equal(validateCycloneDxReport({
+    bomFormat: 'CycloneDX',
+    specVersion: '1.6',
+    components: [{ type: 'library', name: 'example' }],
+  }), true);
+  assert.equal(validateSpdxReport({
+    spdxVersion: 'SPDX-2.3',
+    SPDXID: 'SPDXRef-DOCUMENT',
+    packages: [null],
+  }), false);
+  assert.equal(validateSpdxReport({
+    spdxVersion: 'SPDX-2.3',
+    SPDXID: 'SPDXRef-DOCUMENT',
+    packages: [{ SPDXID: 'SPDXRef-Package-example', name: 'example' }],
+  }), true);
+  assert.equal(validateTrivyReport({
+    SchemaVersion: 2,
+    ArtifactName: 'example',
+    Results: [{ Target: 'example', Vulnerabilities: {} }],
+  }), false);
+  assert.equal(validateTrivyReport({
+    SchemaVersion: 2,
+    ArtifactName: 'example',
+    Results: [{
+      Target: 'example',
+      Vulnerabilities: [{ VulnerabilityID: 'CVE-2026-0001', Severity: 'HIGH' }],
+    }],
+  }), true);
+  assert.equal(validateReadinessReport({}), false);
+  assert.equal(validateReadinessReport({ status: 'not_ready', database: 'unavailable' }), true);
   assert.equal(validateCosignReport({}), false);
+  assert.equal(validateCosignReport([]), false);
   assert.equal(validateCosignReport([{ critical: { identity: 'workflow' } }]), true);
 });
 

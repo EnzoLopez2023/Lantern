@@ -101,36 +101,70 @@ export function validateNpmAuditReport(report) {
 
 export function validateTrivyReport(report) {
   return Boolean(
-    report &&
-    !Array.isArray(report) &&
-    typeof report === 'object' &&
+    isPlainObject(report) &&
+    Number.isSafeInteger(report.SchemaVersion) &&
+    typeof report.ArtifactName === 'string' &&
     Array.isArray(report.Results) &&
     report.Results.every(result =>
-      result &&
-      !Array.isArray(result) &&
-      typeof result === 'object' &&
-      (result.Vulnerabilities == null || Array.isArray(result.Vulnerabilities))),
+      isPlainObject(result) &&
+      typeof result.Target === 'string' &&
+      (result.Vulnerabilities == null ||
+        (Array.isArray(result.Vulnerabilities) &&
+          result.Vulnerabilities.every(vulnerability =>
+            isPlainObject(vulnerability) &&
+            typeof vulnerability.VulnerabilityID === 'string' &&
+            typeof vulnerability.Severity === 'string')))),
   );
 }
 
-function validateCycloneDxReport(report) {
-  return report?.bomFormat === 'CycloneDX' && Array.isArray(report.components);
+function isPlainObject(value) {
+  return Boolean(value && !Array.isArray(value) && typeof value === 'object');
 }
 
-function validateSpdxReport(report) {
-  return typeof report?.spdxVersion === 'string' && Array.isArray(report.packages);
+export function validateCycloneDxReport(report) {
+  return Boolean(
+    isPlainObject(report) &&
+    report.bomFormat === 'CycloneDX' &&
+    typeof report.specVersion === 'string' &&
+    Array.isArray(report.components) &&
+    report.components.every(component =>
+      isPlainObject(component) &&
+      typeof component.type === 'string' &&
+      typeof component.name === 'string'),
+  );
 }
 
-function validateGenericJsonReport(report) {
-  return report !== null && typeof report === 'object';
+export function validateSpdxReport(report) {
+  return Boolean(
+    isPlainObject(report) &&
+    typeof report.spdxVersion === 'string' &&
+    report.SPDXID === 'SPDXRef-DOCUMENT' &&
+    Array.isArray(report.packages) &&
+    report.packages.every(packageEntry =>
+      isPlainObject(packageEntry) &&
+      typeof packageEntry.SPDXID === 'string' &&
+      typeof packageEntry.name === 'string'),
+  );
+}
+
+export function validateReadinessReport(report) {
+  if (!isPlainObject(report) || !['ready', 'not_ready'].includes(report.status)) return false;
+  if (report.status === 'not_ready') return Object.hasOwn(report, 'database');
+  return Boolean(
+    isPlainObject(report.database) &&
+    typeof report.database.authority === 'string' &&
+    typeof report.database.journalMode === 'string' &&
+    typeof report.database.schemaIdentity === 'string' &&
+    typeof report.lifecycle === 'string',
+  );
 }
 
 export function validateCosignReport(report) {
   if (Array.isArray(report)) {
     return report.length > 0 && report.every(entry =>
-      entry && !Array.isArray(entry) && typeof entry === 'object');
+      isPlainObject(entry) && Object.keys(entry).length > 0);
   }
-  return validateGenericJsonReport(report) && Object.keys(report).length > 0;
+  return isPlainObject(report) && Object.keys(report).length > 0;
 }
 
 function validateAndPublish(paths, label, validator) {
@@ -193,7 +227,7 @@ function migrationCompatibility() {
     report: 'migration-readiness.json',
   });
   if (readiness.status !== 0) return readiness.status;
-  if (!validateGenericJsonReport(readiness.report)) {
+  if (!validateReadinessReport(readiness.report)) {
     throw new Error('migration readiness report has an unexpected structure');
   }
   publish(readiness.paths);
@@ -273,7 +307,7 @@ function readinessPrecondition() {
     report: 'readiness-check.json',
   });
   if (readiness.status !== 0) return readiness.status;
-  if (!validateGenericJsonReport(readiness.report)) {
+  if (!validateReadinessReport(readiness.report)) {
     throw new Error('readiness report has an unexpected structure');
   }
   publish(readiness.paths);
@@ -404,7 +438,7 @@ function protectedConfiguration() {
     '--output',
     'json',
   ]);
-  if (!validateGenericJsonReport(config)) throw new Error('site configuration is not an object');
+  if (!isPlainObject(config)) throw new Error('site configuration is not an object');
 
   const paths = reportPaths('config-fingerprint.json');
   prepareReport(paths);
