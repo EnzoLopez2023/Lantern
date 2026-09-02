@@ -13,6 +13,7 @@ import {
   runWithTimeoutOutcome,
 } from '../scripts/deployment-check-runner.mjs';
 import {
+  classifyReadinessResponse,
   validateCycloneDxReport,
   validateCosignReport,
   validateNpmAuditReport,
@@ -255,6 +256,14 @@ test('missing and malformed checker reports remain execution failures', () => {
   assert.equal(validateReadinessReport({}), false);
   assert.equal(validateReadinessReport({ status: 'not_ready', database: null }), false);
   assert.equal(validateReadinessReport({ status: 'not_ready', database: 'unavailable' }), true);
+  assert.equal(classifyReadinessResponse({
+    status: 'not_ready',
+    database: 'unavailable',
+  }, 503), 1);
+  assert.throws(
+    () => classifyReadinessResponse({ status: 'not_ready', database: 'unavailable' }, 200),
+    /does not match HTTP 200/,
+  );
   assert.equal(validateCosignReport({ arbitrary: true }, candidate, 'signature'), false);
   assert.equal(validateCosignReport([], candidate, 'signature'), false);
   assert.equal(validateCosignReport([{
@@ -414,6 +423,8 @@ test('deployment workflow keeps checks observable and operations blocking', asyn
   assert.match(sourceAudit, /deployment-check-runner\.mjs --timeout-ms 90000/);
   assert.match(sourceAudit, /deployment-checks\.mjs source-audit/);
   assert.match(checks, /\['audit', '--omit=dev', '--audit-level=high', '--json'\]/);
+  assert.match(checks, /'--output',\s*paths\.pending,\s*'--write-out',\s*'%\{http_code\}'/);
+  assert.doesNotMatch(checks, /'-fsS'/);
   assert.match(
     step(workflow, 'Diagnostic: record production dependency audit'),
     /report-format: npm-audit-json/,

@@ -357,6 +357,15 @@ export function validateReadinessReport(report) {
   );
 }
 
+export function classifyReadinessResponse(report, httpStatus) {
+  if (!validateReadinessReport(report)) {
+    throw new Error('readiness report has an unexpected structure');
+  }
+  if (report.status === 'ready' && httpStatus === 200) return 0;
+  if (report.status === 'not_ready' && httpStatus === 503) return 1;
+  throw new Error(`readiness status ${report.status} does not match HTTP ${httpStatus}`);
+}
+
 function expectedDigestParts(expectedImageReference) {
   const [repository, digest] = String(expectedImageReference ?? '').split('@');
   if (!repository || !/^sha256:[0-9a-f]{64}$/.test(digest ?? '')) return null;
@@ -492,18 +501,52 @@ function sourceSbom() {
 function fetchReadiness(query) {
   const paths = reportPaths(query.report);
   prepareReport(paths);
-  const status = runToFile(
+  const result = spawnSync(
     'curl',
     [
-      '-fsS',
+      '--silent',
+      '--show-error',
       '--max-time',
       process.env.HTTP_TIMEOUT_SECONDS,
+      '--output',
+      paths.pending,
+      '--write-out',
+      '%{http_code}',
       `${process.env.PRODUCTION_URL}${process.env.READY_PATH}?${query.parameter}=${process.env.GITHUB_RUN_ID}-${process.env.GITHUB_RUN_ATTEMPT}`,
     ],
-    paths.pending,
+    {
+      encoding: 'utf8',
+      env: process.env,
+      shell: false,
+      stdio: ['ignore', 'pipe', 'inherit'],
+    },
   );
-  if (status !== 0) return { status, paths, report: null };
-  return { status, paths, report: parsePending(paths, query.label) };
+  if (result.error) {
+    throw new CheckerProcessError(
+      `curl could not start: ${result.error.message}`,
+      { exitCode: result.error.code === 'ENOENT' ? 127 : 126 },
+    );
+  }
+  if (result.signal) {
+    throw new CheckerProcessError(
+      `curl terminated by signal ${result.signal}`,
+      { signal: result.signal },
+    );
+  }
+  if (result.status !== 0) {
+    throw new CheckerProcessError(
+      `curl exited ${result.status}`,
+      { exitCode: result.status },
+    );
+  }
+  const httpStatus = Number(result.stdout.trim());
+  if (!Number.isSafeInteger(httpStatus) || httpStatus < 100 || httpStatus > 599) {
+    throw new Error(`curl returned malformed HTTP status: ${result.stdout.trim() || '(empty)'}`);
+  }
+  const report = parsePending(paths, query.label);
+  const status = classifyReadinessResponse(report, httpStatus);
+  publish(paths);
+  return { status, paths, report };
 }
 
 function migrationCompatibility() {
@@ -512,11 +555,6 @@ function migrationCompatibility() {
     parameter: 'migration-compat',
     report: 'migration-readiness.json',
   });
-  if (readiness.status !== 0) return readiness.status;
-  if (!validateReadinessReport(readiness.report)) {
-    throw new Error('migration readiness report has an unexpected structure');
-  }
-  publish(readiness.paths);
 
   const candidate = readdirSync('lib/migrations')
     .filter(name => /^\d{3,}[-_].+\.sql$/.test(name))
@@ -594,10 +632,6 @@ function readinessPrecondition() {
     report: 'readiness-check.json',
   });
   if (readiness.status !== 0) return readiness.status;
-  if (!validateReadinessReport(readiness.report)) {
-    throw new Error('readiness report has an unexpected structure');
-  }
-  publish(readiness.paths);
   const report = readiness.report;
   return report.status === 'ready' &&
     report.database?.authority === 'sqlite' &&
