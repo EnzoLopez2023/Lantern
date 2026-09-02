@@ -63,7 +63,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 80
 
     steps:
       - name: Checkout exact source
@@ -95,16 +95,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p evidence
-          rm -f evidence/npm-audit.json
-          set +e
-          npm audit --omit=dev --audit-level=high --json > evidence/npm-audit.json.pending
-          checker_status=$?
-          set -e
-          mv evidence/npm-audit.json.pending evidence/npm-audit.json
-          exit "$checker_status"
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 90000 --
+          node scripts/deployment-checks.mjs source-audit
 
       - name: "Diagnostic: record production dependency audit"
         if: ${{ always() }}
@@ -114,7 +107,7 @@ jobs:
           category: source-audit
           phase: pre-build
           mode: record
-          exit-code: ${{ steps.source-audit-checker.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.source-audit-checker.outputs.exit_code || (steps.source-audit-checker.outcome == 'success' && '0' || '124') }}
           report: evidence/npm-audit.json
           report-format: npm-audit-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -124,16 +117,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p evidence
-          rm -f evidence/source-sbom.cdx.json
-          set +e
-          npm sbom --sbom-format=cyclonedx > evidence/source-sbom.cdx.json.pending
-          checker_status=$?
-          set -e
-          mv evidence/source-sbom.cdx.json.pending evidence/source-sbom.cdx.json
-          exit "$checker_status"
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 90000 --
+          node scripts/deployment-checks.mjs source-sbom
 
       - name: "Diagnostic: record source SBOM"
         if: ${{ always() }}
@@ -143,7 +129,7 @@ jobs:
           category: sbom
           phase: pre-build
           mode: record
-          exit-code: ${{ steps.source-sbom-checker.outcome == 'success' && '0' || '127' }}
+          exit-code: ${{ steps.source-sbom-checker.outputs.exit_code || (steps.source-sbom-checker.outcome == 'success' && '0' || '124') }}
           report: evidence/source-sbom.cdx.json
           report-format: cyclonedx-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -217,35 +203,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 1
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p evidence
-          rm -f evidence/migration-check.json
-          curl -fsS --max-time "$HTTP_TIMEOUT_SECONDS" \
-            "$PRODUCTION_URL$READY_PATH?migration-compat=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
-            > evidence/migration-readiness.json
-          expected="$(find lib/migrations -maxdepth 1 -type f -name '*.sql' \
-            -exec basename {} \; | sort | paste -sd, -)"
-          current="$(jq -r '.database.schemaIdentity // ""' evidence/migration-readiness.json)"
-          ready="$(jq -r '.status // ""' evidence/migration-readiness.json)"
-          compatible=false
-          if [[ "$ready" == "ready" && -n "$current" && "$current" != "unversioned" ]] \
-            && { [[ "$expected" == "$current" ]] || [[ "$expected" == "$current,"* ]]; }; then
-            compatible=true
-          fi
-          jq -n \
-            --arg current "$current" \
-            --arg candidate "$expected" \
-            --argjson compatible "$compatible" \
-            '{check:"migration-compatibility", current_schema:$current,
-              candidate_schema:$candidate, compatible:$compatible}' \
-            > evidence/migration-check.json.pending
-          set +e
-          jq -e '.compatible == true' evidence/migration-check.json.pending > /dev/null
-          checker_status=$?
-          set -e
-          mv evidence/migration-check.json.pending evidence/migration-check.json
-          exit "$checker_status"
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 45000 --
+          node scripts/deployment-checks.mjs migration
 
       - name: "Diagnostic: record migration compatibility"
         if: ${{ always() }}
@@ -255,7 +215,7 @@ jobs:
           category: migration-precondition
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.migration-checker.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.migration-checker.outputs.exit_code || (steps.migration-checker.outcome == 'success' && '0' || '124') }}
           report: evidence/migration-check.json
           report-format: generic-json
           evidence: evidence/migration-readiness.json
@@ -266,50 +226,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p evidence
-          rm -f evidence/recovery-check.json
-          backups="$(az webapp config backup list \
-            --resource-group "$RG" --webapp-name "$WEBAPP" \
-            --query '[].{status:status,completed:finishedTimeStamp,created:created}' \
-            --output json)"
-          latest="$(jq -r \
-            '[.[] | select(((.status // "") | ascii_downcase) == "succeeded") |
-              (.completed // .created)] |
-              map(select(type == "string" and length > 0)) | sort | last // ""' \
-            <<<"$backups")"
-          fresh=false
-          age_seconds=null
-          if [[ -n "$latest" ]]; then
-            latest_epoch="$(date -u -d "$latest" +%s)"
-            now_epoch="$(date -u +%s)"
-            age_seconds=$((now_epoch - latest_epoch))
-            if (( age_seconds >= 0 && age_seconds <= 93600 )); then
-              fresh=true
-            fi
-          fi
-          rollback_ready=false
-          if [[ "$PREVIOUS_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-            rollback_ready=true
-          fi
-          jq -n \
-            --arg latest "$latest" \
-            --argjson age_seconds "$age_seconds" \
-            --argjson fresh "$fresh" \
-            --argjson rollback_ready "$rollback_ready" \
-            '{check:"backup-freshness", rpo_hours:26,
-              latest_successful_backup:($latest | if length > 0 then . else null end),
-              age_seconds:$age_seconds, fresh_backup:$fresh,
-              rollback_image_resolved:$rollback_ready}' \
-            > evidence/recovery-check.json.pending
-          set +e
-          jq -e '.fresh_backup == true and .rollback_image_resolved == true' \
-            evidence/recovery-check.json.pending > /dev/null
-          checker_status=$?
-          set -e
-          mv evidence/recovery-check.json.pending evidence/recovery-check.json
-          exit "$checker_status"
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 90000 --
+          node scripts/deployment-checks.mjs recovery
 
       - name: "Diagnostic: record backup and recovery freshness"
         if: ${{ always() }}
@@ -319,7 +238,7 @@ jobs:
           category: recovery-precondition
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.recovery-checker.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.recovery-checker.outputs.exit_code || (steps.recovery-checker.outcome == 'success' && '0' || '124') }}
           report: evidence/recovery-check.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -329,24 +248,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 1
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p evidence
-          rm -f evidence/readiness-check.json
-          curl -fsS --max-time "$HTTP_TIMEOUT_SECONDS" \
-            "$PRODUCTION_URL$READY_PATH?preflight-readiness=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
-            > evidence/readiness-check.json.pending
-          set +e
-          jq -e '
-            .status == "ready" and
-            .database.authority == "sqlite" and
-            .database.journalMode == "delete" and
-            .lifecycle == "running"
-          ' evidence/readiness-check.json.pending > /dev/null
-          checker_status=$?
-          set -e
-          mv evidence/readiness-check.json.pending evidence/readiness-check.json
-          exit "$checker_status"
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 45000 --
+          node scripts/deployment-checks.mjs readiness
 
       - name: "Diagnostic: record pre-activation readiness"
         if: ${{ always() }}
@@ -356,7 +260,7 @@ jobs:
           category: readiness-precondition
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.readiness-checker.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.readiness-checker.outputs.exit_code || (steps.readiness-checker.outcome == 'success' && '0' || '124') }}
           report: evidence/readiness-check.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -366,52 +270,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p evidence
-          rm -f evidence/monitor-precheck.json
-          app_id="$(az webapp show --resource-group "$RG" --name "$WEBAPP" \
-            --query id --output tsv)"
-          approved_action_group="/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Insights/actionGroups/ag-recovery-alerts"
-          alerts="$(az monitor metrics alert list --resource-group "$RG" \
-            --query '[].{name:name,enabled:enabled,scopes:scopes,actionGroups:actions[].actionGroupId}' \
-            --output json)"
-          matching_alerts="$(jq --arg app "$app_id" \
-            '[.[] | select(any(.scopes[]?; ascii_downcase == ($app | ascii_downcase)))]' \
-            <<<"$alerts")"
-          start_time="$(date -u -d '2 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
-          metrics="$(az monitor metrics list --resource "$app_id" \
-            --metric Http2xx --interval PT1H --aggregation Total \
-            --start-time "$start_time" --output json)"
-          alert_names="$(jq '[.[].name] | sort' <<<"$matching_alerts")"
-          has_alert="$(jq --arg approved "$approved_action_group" \
-            '[.[] | select(.enabled == true) | .actionGroups[]? | ascii_downcase] |
-              any(. == ($approved | ascii_downcase))' <<<"$matching_alerts")"
-          http_2xx_total="$(jq \
-            '[.value[]?.timeseries[]?.data[]? | (.total // 0)] | add // 0' \
-            <<<"$metrics")"
-          recent_success=false
-          if jq -e 'tonumber > 0' <<<"$http_2xx_total" > /dev/null; then
-            recent_success=true
-          fi
-          jq -n \
-            --argjson alert_names "$alert_names" \
-            --argjson has_alert "$has_alert" \
-            --argjson http_2xx_total "$http_2xx_total" \
-            --argjson recent_success "$recent_success" \
-            '{check:"monitor-precheck", lookback_hours:2,
-              alert_names:$alert_names, has_enabled_approved_alert:$has_alert,
-              http_2xx_total:$http_2xx_total,
-              recent_successful_sample:$recent_success}' \
-            > evidence/monitor-precheck.json.pending
-          set +e
-          jq -e \
-            '.has_enabled_approved_alert == true and .recent_successful_sample == true' \
-            evidence/monitor-precheck.json.pending > /dev/null
-          checker_status=$?
-          set -e
-          mv evidence/monitor-precheck.json.pending evidence/monitor-precheck.json
-          exit "$checker_status"
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 90000 --
+          node scripts/deployment-checks.mjs monitoring
 
       - name: "Diagnostic: record monitoring resources"
         if: ${{ always() }}
@@ -421,7 +282,7 @@ jobs:
           category: monitoring-precheck
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.monitoring-checker.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.monitoring-checker.outputs.exit_code || (steps.monitoring-checker.outcome == 'success' && '0' || '124') }}
           report: evidence/monitor-precheck.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -431,29 +292,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 1
         shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p evidence
-          rm -f evidence/config-fingerprint.json
-          config="$(az webapp config show \
-            --resource-group "$RG" --name "$WEBAPP" \
-            --query '{alwaysOn:alwaysOn, workers:numberOfWorkers, image:linuxFxVersion}' \
-            --output json)"
-          jq '{
-            check:"site-invariant-fingerprint",
-            invariants:[
-              {name:"alwaysOn", matches:(.alwaysOn == true)},
-              {name:"numberOfWorkers", matches:(.workers == 1)},
-              {name:"linuxFxVersion", matches:(.image | startswith("DOCKER|"))}
-            ]
-          }' <<<"$config" > evidence/config-fingerprint.json.pending
-          set +e
-          jq -e 'all(.invariants[]; .matches == true)' \
-            evidence/config-fingerprint.json.pending > /dev/null
-          checker_status=$?
-          set -e
-          mv evidence/config-fingerprint.json.pending evidence/config-fingerprint.json
-          exit "$checker_status"
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 45000 --
+          node scripts/deployment-checks.mjs protected-configuration
 
       - name: "Diagnostic: record protected configuration"
         if: ${{ always() }}
@@ -463,7 +304,7 @@ jobs:
           category: protected-configuration-precheck
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.protected-config-checker.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.protected-config-checker.outputs.exit_code || (steps.protected-config-checker.outcome == 'success' && '0' || '124') }}
           report: evidence/config-fingerprint.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -520,17 +361,25 @@ jobs:
             echo "DIAGNOSTIC_BUILD_ID=$BUILD_ID"
           } >> "$GITHUB_ENV"
 
+      - name: Set up exact-image SBOM scanner
+        id: syft-setup
+        continue-on-error: true
+        timeout-minutes: 2
+        uses: anchore/sbom-action/download-syft@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          syft-version: v1.42.3
+
       - name: Generate exact-image SBOM
         id: image-sbom
         continue-on-error: true
         timeout-minutes: 5
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
-        with:
-          image: ${{ steps.image.outputs.ref }}
-          format: spdx-json
-          output-file: evidence/image-sbom.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
+        shell: bash
+        env:
+          SYFT_CMD: ${{ steps.syft-setup.outputs.cmd }}
+          SYFT_SETUP_OUTCOME: ${{ steps.syft-setup.outcome }}
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 240000 --
+          node scripts/deployment-checks.mjs image-sbom
 
       - name: "Diagnostic: record exact-image SBOM"
         if: ${{ always() }}
@@ -540,25 +389,50 @@ jobs:
           category: sbom
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.image-sbom.outcome == 'success' && '0' || '127' }}
+          exit-code: ${{ steps.image-sbom.outputs.exit_code || (steps.image-sbom.outcome == 'success' && '0' || '124') }}
           report: evidence/image-sbom.spdx.json
           report-format: spdx-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
+
+      - name: Set up exact-image vulnerability scanner
+        id: trivy-setup
+        continue-on-error: true
+        timeout-minutes: 2
+        # aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        # (v0.36.0) delegates setup to this exact action and Trivy version.
+        uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
+        with:
+          version: v0.70.0
+          cache: true
+          token: ${{ github.token }}
+
+      - name: Resolve vulnerability database cache date
+        id: trivy-date
+        continue-on-error: true
+        timeout-minutes: 1
+        shell: bash
+        run: echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Restore vulnerability database cache
+        continue-on-error: true
+        timeout-minutes: 2
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ${{ github.workspace }}/.cache/trivy
+          key: cache-trivy-${{ steps.trivy-date.outputs.date }}
+          restore-keys: cache-trivy-
 
       - name: Scan exact image for HIGH and CRITICAL vulnerabilities
         id: image-scan
         continue-on-error: true
         timeout-minutes: 11
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: ${{ steps.image.outputs.ref }}
-          format: json
-          output: evidence/trivy-image.json
-          exit-code: '0'
-          ignore-unfixed: false
-          severity: HIGH,CRITICAL
-          scanners: vuln
-          timeout: 10m
+        shell: bash
+        env:
+          TRIVY_CACHE_DIR: ${{ github.workspace }}/.cache/trivy
+          TRIVY_SETUP_OUTCOME: ${{ steps.trivy-setup.outcome }}
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 630000 --
+          node scripts/deployment-checks.mjs image-scan
 
       - name: "Diagnostic: record image vulnerability scan"
         if: ${{ always() }}
@@ -568,7 +442,7 @@ jobs:
           category: image-scan
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.image-scan.outcome == 'success' && '0' || '127' }}
+          exit-code: ${{ steps.image-scan.outputs.exit_code || (steps.image-scan.outcome == 'success' && '0' || '124') }}
           report: evidence/trivy-image.json
           report-format: trivy-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -619,19 +493,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         shell: bash
-        run: |
-          set -euo pipefail
-          rm -f evidence/cosign-signature.json
-          workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
-          set +e
-          cosign verify \
-            --certificate-identity "$workflow_identity" \
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            "$IMAGE_REFERENCE" > evidence/cosign-signature.json.pending
-          checker_status=$?
-          set -e
-          mv evidence/cosign-signature.json.pending evidence/cosign-signature.json
-          exit "$checker_status"
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 90000 --
+          node scripts/deployment-checks.mjs signature
 
       - name: "Diagnostic: record signature verification"
         if: ${{ always() }}
@@ -641,7 +505,7 @@ jobs:
           category: signature-provenance
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.signature-checker.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.signature-checker.outputs.exit_code || (steps.signature-checker.outcome == 'success' && '0' || '124') }}
           report: evidence/cosign-signature.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -651,19 +515,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         shell: bash
-        run: |
-          set -euo pipefail
-          rm -f evidence/cosign-provenance.json
-          workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
-          set +e
-          cosign verify-attestation --type slsaprovenance1 \
-            --certificate-identity "$workflow_identity" \
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            "$IMAGE_REFERENCE" > evidence/cosign-provenance.json.pending
-          checker_status=$?
-          set -e
-          mv evidence/cosign-provenance.json.pending evidence/cosign-provenance.json
-          exit "$checker_status"
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 90000 --
+          node scripts/deployment-checks.mjs provenance
 
       - name: "Diagnostic: record provenance attestation verification"
         if: ${{ always() }}
@@ -673,7 +527,7 @@ jobs:
           category: signature-provenance
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.provenance-checker.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.provenance-checker.outputs.exit_code || (steps.provenance-checker.outcome == 'success' && '0' || '124') }}
           report: evidence/cosign-provenance.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -683,19 +537,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 2
         shell: bash
-        run: |
-          set -euo pipefail
-          rm -f evidence/cosign-sbom.json
-          workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
-          set +e
-          cosign verify-attestation --type spdxjson \
-            --certificate-identity "$workflow_identity" \
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            "$IMAGE_REFERENCE" > evidence/cosign-sbom.json.pending
-          checker_status=$?
-          set -e
-          mv evidence/cosign-sbom.json.pending evidence/cosign-sbom.json
-          exit "$checker_status"
+        run: >-
+          node scripts/deployment-check-runner.mjs --timeout-ms 90000 --
+          node scripts/deployment-checks.mjs sbom-attestation
 
       - name: "Diagnostic: record SBOM attestation verification"
         if: ${{ always() }}
@@ -705,10 +549,17 @@ jobs:
           category: signature-provenance
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.sbom-attestation-checker.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.sbom-attestation-checker.outputs.exit_code || (steps.sbom-attestation-checker.outcome == 'success' && '0' || '124') }}
           report: evidence/cosign-sbom.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
+
+      - name: Refresh Azure login before production activation
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
       - name: Arm rollback before production mutation
         shell: bash

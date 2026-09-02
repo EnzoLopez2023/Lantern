@@ -8,6 +8,12 @@ import {
   classifyProcess,
   parseReport,
 } from '../scripts/deployment-diagnostic.mjs';
+import { runWithTimeout } from '../scripts/deployment-check-runner.mjs';
+import {
+  validateCosignReport,
+  validateNpmAuditReport,
+  validateTrivyReport,
+} from '../scripts/deployment-checks.mjs';
 
 const REVIEWED_CONTRACT_HEAD = 'f45790e9df7c9fabbc53dd04e6055a59d6f28f39';
 const REVIEWED_HELPER_BLOB = 'd31a00faad5832832bf0b91e96387f5f77645700';
@@ -63,10 +69,38 @@ test('missing and malformed checker reports remain execution failures', () => {
   assert.equal(classifyProcess({ exitCode: 124 }).ok, false);
   assert.equal(classifyProcess({ signal: 'SIGKILL' }).ok, false);
   assert.equal(classifyProcess({ exitCode: 1 }).ok, true);
+
+  assert.equal(validateNpmAuditReport({ metadata: { vulnerabilities: {} } }), false);
+  assert.equal(validateNpmAuditReport({
+    metadata: {
+      vulnerabilities: { info: 0, low: 0, moderate: 0, high: 1, critical: 0, total: 1 },
+    },
+  }), true);
+  assert.equal(validateTrivyReport({ Results: [{ Vulnerabilities: {} }] }), false);
+  assert.equal(validateTrivyReport({ Results: [{ Vulnerabilities: [] }] }), true);
+  assert.equal(validateCosignReport({}), false);
+  assert.equal(validateCosignReport([{ critical: { identity: 'workflow' } }]), true);
+});
+
+test('checker runner terminates the complete process group', {
+  skip: process.platform === 'win32',
+}, async () => {
+  const started = Date.now();
+  const status = await runWithTimeout({
+    command: 'bash',
+    args: ['-c', 'sleep 5 & wait'],
+    timeoutMs: 50,
+    killGraceMs: 50,
+  });
+  assert.equal(status, 124);
+  assert.ok(Date.now() - started < 1_000, 'a checker descendant survived the timeout');
 });
 
 test('deployment workflow keeps checks observable and operations blocking', async () => {
-  const workflow = await readFile('.github/workflows/deploy.yml', 'utf8');
+  const [workflow, checks] = await Promise.all([
+    readFile('.github/workflows/deploy.yml', 'utf8'),
+    readFile('scripts/deployment-checks.mjs', 'utf8'),
+  ]);
   const checkIds = [
     'source-dependency-audit',
     'source-sbom',
@@ -90,6 +124,7 @@ test('deployment workflow keeps checks observable and operations blocking', asyn
     13,
   );
   assert.equal((workflow.match(/records: \$\{\{ env\.DIAGNOSTIC_RECORDS \}\}/g) ?? []).length, 13);
+  assert.equal((workflow.match(/outputs\.exit_code/g) ?? []).length, 12);
   for (const helperStep of workflow
     .split(/(?=^      - name:)/m)
     .filter(block => block.includes('uses: ./.github/actions/deployment-diagnostic'))) {
@@ -103,6 +138,7 @@ test('deployment workflow keeps checks observable and operations blocking', asyn
     'Install exact dependencies',
     'Run repository checks',
     'Azure login with OIDC',
+    'Refresh Azure login before production activation',
     'Capture prior release and protected configuration',
     'Build, push, and inspect digest-pinned candidate',
     'Install Cosign',
@@ -122,7 +158,11 @@ test('deployment workflow keeps checks observable and operations blocking', asyn
     ['Check pre-activation readiness', 1],
     ['Check monitoring resources', 2],
     ['Check protected configuration', 1],
+    ['Set up exact-image SBOM scanner', 2],
     ['Generate exact-image SBOM', 5],
+    ['Set up exact-image vulnerability scanner', 2],
+    ['Resolve vulnerability database cache date', 1],
+    ['Restore vulnerability database cache', 2],
     ['Scan exact image for HIGH and CRITICAL vulnerabilities', 11],
     ['Verify exact image signature', 2],
     ['Verify provenance attestation', 2],
@@ -135,55 +175,75 @@ test('deployment workflow keeps checks observable and operations blocking', asyn
     assert.match(checker, new RegExp(`timeout-minutes: ${timeout}(?:\\n|$)`), name);
     diagnosticBudget += timeout;
   }
-  assert.equal(diagnosticBudget, 33);
-  assert.match(workflow, /runs-on: ubuntu-latest\n    timeout-minutes: 75/);
+  assert.equal(diagnosticBudget, 40);
+  assert.match(workflow, /runs-on: ubuntu-latest\n    timeout-minutes: 80/);
 
   const sourceAudit = step(workflow, 'Run production dependency audit');
-  assert.match(sourceAudit, /npm audit --omit=dev --audit-level=high --json/);
-  assert.match(sourceAudit, /npm-audit\.json\.pending/);
+  assert.match(sourceAudit, /deployment-check-runner\.mjs --timeout-ms 90000/);
+  assert.match(sourceAudit, /deployment-checks\.mjs source-audit/);
+  assert.match(checks, /\['audit', '--omit=dev', '--audit-level=high', '--json'\]/);
   assert.match(
     step(workflow, 'Diagnostic: record production dependency audit'),
     /report-format: npm-audit-json/,
   );
 
+  const syftSetup = step(workflow, 'Set up exact-image SBOM scanner');
+  assert.match(syftSetup, /anchore\/sbom-action\/download-syft@e22c389904149dbc22b58101806040fa8d37a610/);
+  assert.match(syftSetup, /syft-version: v1\.42\.3/);
   const imageSbom = step(workflow, 'Generate exact-image SBOM');
   assert.match(imageSbom, /continue-on-error: true/);
-  assert.match(imageSbom, /anchore\/sbom-action@e22c389904149dbc22b58101806040fa8d37a610/);
-  assert.match(imageSbom, /format: spdx-json/);
-  assert.match(imageSbom, /upload-artifact: false/);
-  assert.match(imageSbom, /upload-release-assets: false/);
+  assert.match(imageSbom, /deployment-check-runner\.mjs --timeout-ms 240000/);
+  assert.match(imageSbom, /deployment-checks\.mjs image-sbom/);
+  assert.match(imageSbom, /SYFT_SETUP_OUTCOME: \$\{\{ steps\.syft-setup\.outcome \}\}/);
+  assert.match(checks, /\['scan', process\.env\.IMAGE_REFERENCE, '-o', 'spdx-json'\]/);
   assert.match(
     step(workflow, 'Diagnostic: record exact-image SBOM'),
-    /outcome == 'success' && '0' \|\| '127'/,
+    /outputs\.exit_code \|\| \(steps\.image-sbom\.outcome == 'success' && '0' \|\| '124'\)/,
   );
 
+  const trivySetup = step(workflow, 'Set up exact-image vulnerability scanner');
+  assert.match(trivySetup, /aquasecurity\/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25/);
+  assert.match(trivySetup, /aquasecurity\/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514/);
+  assert.match(trivySetup, /version: v0\.70\.0/);
   const imageScan = step(workflow, 'Scan exact image for HIGH and CRITICAL vulnerabilities');
   assert.match(imageScan, /continue-on-error: true/);
-  assert.match(imageScan, /aquasecurity\/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25/);
-  assert.match(imageScan, /exit-code: '0'/);
-  assert.match(imageScan, /ignore-unfixed: false/);
-  assert.match(imageScan, /severity: HIGH,CRITICAL/);
-  assert.match(imageScan, /scanners: vuln/);
-  assert.match(imageScan, /timeout: 10m/);
+  assert.match(imageScan, /deployment-check-runner\.mjs --timeout-ms 630000/);
+  assert.match(imageScan, /deployment-checks\.mjs image-scan/);
+  assert.match(imageScan, /TRIVY_SETUP_OUTCOME: \$\{\{ steps\.trivy-setup\.outcome \}\}/);
+  for (const input of [
+    "TRIVY_EXIT_CODE: '0'",
+    "TRIVY_FORMAT: 'json'",
+    "TRIVY_IGNORE_UNFIXED: 'false'",
+    "TRIVY_SCANNERS: 'vuln'",
+    "TRIVY_SEVERITY: 'HIGH,CRITICAL'",
+    "TRIVY_TIMEOUT: '10m'",
+  ]) {
+    assert.ok(checks.includes(input), input);
+  }
   assert.match(
     step(workflow, 'Diagnostic: record image vulnerability scan'),
-    /outcome == 'success' && '0' \|\| '127'/,
+    /outputs\.exit_code \|\| \(steps\.image-scan\.outcome == 'success' && '0' \|\| '124'\)/,
   );
 
   assert.match(
     workflow,
     /sigstore\/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6/,
   );
-  assert.match(workflow, /cosign verify \\\n[\s\S]*--certificate-identity "\$workflow_identity"/);
-  assert.equal((workflow.match(/cosign verify-attestation --type /g) ?? []).length, 2);
-  assert.match(workflow, /--type slsaprovenance1/);
-  assert.match(workflow, /--type spdxjson/);
+  assert.match(checks, /'verify',[\s\S]*'--certificate-identity'/);
+  assert.equal((checks.match(/'verify-attestation'/g) ?? []).length, 2);
+  assert.match(checks, /'slsaprovenance1'/);
+  assert.match(checks, /'spdxjson'/);
 
   assert.match(
     step(workflow, 'Restore prior release after failure or cancellation'),
     /failure\(\) \|\| cancelled\(\)/,
   );
   assert.match(step(workflow, 'Verify candidate is the exact release'), /REQUIRED_CONFIRMATIONS/);
+  assert.equal((workflow.match(/uses: azure\/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6/g) ?? []).length, 2);
+  assert.ok(
+    workflow.indexOf('Refresh Azure login before production activation') <
+      workflow.indexOf('Arm rollback before production mutation'),
+  );
   assert.doesNotMatch(workflow, /^\s+needs:/m);
 });
 
