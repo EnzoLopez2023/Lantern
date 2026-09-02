@@ -9,7 +9,7 @@ import {
   parseReport,
 } from '../scripts/deployment-diagnostic.mjs';
 
-const REVIEWED_CONTRACT_HEAD = '3b5bc3bfd2ed84a87f19f6fbe77074bd850cd5d1';
+const REVIEWED_CONTRACT_HEAD = 'f45790e9df7c9fabbc53dd04e6055a59d6f28f39';
 const REVIEWED_HELPER_BLOB = 'd31a00faad5832832bf0b91e96387f5f77645700';
 const REVIEWED_ACTION_BLOB = 'ff7330e29f4f15abe61bf8c4f5520ff5f1674fc4';
 
@@ -90,6 +90,12 @@ test('deployment workflow keeps checks observable and operations blocking', asyn
     13,
   );
   assert.equal((workflow.match(/records: \$\{\{ env\.DIAGNOSTIC_RECORDS \}\}/g) ?? []).length, 13);
+  for (const helperStep of workflow
+    .split(/(?=^      - name:)/m)
+    .filter(block => block.includes('uses: ./.github/actions/deployment-diagnostic'))) {
+    assert.match(helperStep, /mode: (?:record|aggregate)/);
+    assert.doesNotMatch(helperStep, /^\s+run:\s*[|>]?/m);
+  }
 
   for (const operation of [
     'Checkout exact source',
@@ -108,9 +114,37 @@ test('deployment workflow keeps checks observable and operations blocking', asyn
     assert.doesNotMatch(step(workflow, operation), /continue-on-error:\s*true/, operation);
   }
 
-  const sourceAudit = step(workflow, 'Diagnostic: production dependency audit');
+  const checkerTimeouts = new Map([
+    ['Run production dependency audit', 2],
+    ['Generate source SBOM', 2],
+    ['Check migration compatibility', 1],
+    ['Check backup and recovery freshness', 2],
+    ['Check pre-activation readiness', 1],
+    ['Check monitoring resources', 2],
+    ['Check protected configuration', 1],
+    ['Generate exact-image SBOM', 5],
+    ['Scan exact image for HIGH and CRITICAL vulnerabilities', 11],
+    ['Verify exact image signature', 2],
+    ['Verify provenance attestation', 2],
+    ['Verify SBOM attestation', 2],
+  ]);
+  let diagnosticBudget = 0;
+  for (const [name, timeout] of checkerTimeouts) {
+    const checker = step(workflow, name);
+    assert.match(checker, /continue-on-error: true/, name);
+    assert.match(checker, new RegExp(`timeout-minutes: ${timeout}(?:\\n|$)`), name);
+    diagnosticBudget += timeout;
+  }
+  assert.equal(diagnosticBudget, 33);
+  assert.match(workflow, /runs-on: ubuntu-latest\n    timeout-minutes: 75/);
+
+  const sourceAudit = step(workflow, 'Run production dependency audit');
   assert.match(sourceAudit, /npm audit --omit=dev --audit-level=high --json/);
-  assert.match(sourceAudit, /report-format: npm-audit-json/);
+  assert.match(sourceAudit, /npm-audit\.json\.pending/);
+  assert.match(
+    step(workflow, 'Diagnostic: record production dependency audit'),
+    /report-format: npm-audit-json/,
+  );
 
   const imageSbom = step(workflow, 'Generate exact-image SBOM');
   assert.match(imageSbom, /continue-on-error: true/);
@@ -118,6 +152,10 @@ test('deployment workflow keeps checks observable and operations blocking', asyn
   assert.match(imageSbom, /format: spdx-json/);
   assert.match(imageSbom, /upload-artifact: false/);
   assert.match(imageSbom, /upload-release-assets: false/);
+  assert.match(
+    step(workflow, 'Diagnostic: record exact-image SBOM'),
+    /outcome == 'success' && '0' \|\| '127'/,
+  );
 
   const imageScan = step(workflow, 'Scan exact image for HIGH and CRITICAL vulnerabilities');
   assert.match(imageScan, /continue-on-error: true/);
@@ -127,6 +165,10 @@ test('deployment workflow keeps checks observable and operations blocking', asyn
   assert.match(imageScan, /severity: HIGH,CRITICAL/);
   assert.match(imageScan, /scanners: vuln/);
   assert.match(imageScan, /timeout: 10m/);
+  assert.match(
+    step(workflow, 'Diagnostic: record image vulnerability scan'),
+    /outcome == 'success' && '0' \|\| '127'/,
+  );
 
   assert.match(
     workflow,

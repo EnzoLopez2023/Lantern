@@ -63,7 +63,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 75
 
     steps:
       - name: Checkout exact source
@@ -90,31 +90,63 @@ jobs:
           set -euo pipefail
           npm run check
 
-      - name: "Diagnostic: production dependency audit"
+      - name: Run production dependency audit
+        id: source-audit-checker
+        continue-on-error: true
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          rm -f evidence/npm-audit.json
+          set +e
+          npm audit --omit=dev --audit-level=high --json > evidence/npm-audit.json.pending
+          checker_status=$?
+          set -e
+          mv evidence/npm-audit.json.pending evidence/npm-audit.json
+          exit "$checker_status"
+
+      - name: "Diagnostic: record production dependency audit"
+        if: ${{ always() }}
         uses: ./.github/actions/deployment-diagnostic
         with:
           check-id: source-dependency-audit
           category: source-audit
           phase: pre-build
+          mode: record
+          exit-code: ${{ steps.source-audit-checker.outcome == 'success' && '0' || '1' }}
           report: evidence/npm-audit.json
           report-format: npm-audit-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
-          run: |
-            mkdir -p evidence
-            npm audit --omit=dev --audit-level=high --json > evidence/npm-audit.json
 
-      - name: "Diagnostic: source SBOM"
+      - name: Generate source SBOM
+        id: source-sbom-checker
+        continue-on-error: true
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          rm -f evidence/source-sbom.cdx.json
+          set +e
+          npm sbom --sbom-format=cyclonedx > evidence/source-sbom.cdx.json.pending
+          checker_status=$?
+          set -e
+          mv evidence/source-sbom.cdx.json.pending evidence/source-sbom.cdx.json
+          exit "$checker_status"
+
+      - name: "Diagnostic: record source SBOM"
+        if: ${{ always() }}
         uses: ./.github/actions/deployment-diagnostic
         with:
           check-id: source-sbom
           category: sbom
           phase: pre-build
+          mode: record
+          exit-code: ${{ steps.source-sbom-checker.outcome == 'success' && '0' || '127' }}
           report: evidence/source-sbom.cdx.json
           report-format: cyclonedx-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
-          run: |
-            mkdir -p evidence
-            npm sbom --sbom-format=cyclonedx > evidence/source-sbom.cdx.json
 
       - name: Azure login with OIDC
         uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
@@ -180,183 +212,261 @@ jobs:
           } >> "$GITHUB_ENV"
           echo "Prior digest $previous_digest, instance ${prev_instance_id:-unknown}, commit ${prev_commit:-unknown}"
 
-      - name: "Diagnostic: migration compatibility"
+      - name: Check migration compatibility
+        id: migration-checker
+        continue-on-error: true
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          rm -f evidence/migration-check.json
+          curl -fsS --max-time "$HTTP_TIMEOUT_SECONDS" \
+            "$PRODUCTION_URL$READY_PATH?migration-compat=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            > evidence/migration-readiness.json
+          expected="$(find lib/migrations -maxdepth 1 -type f -name '*.sql' \
+            -exec basename {} \; | sort | paste -sd, -)"
+          current="$(jq -r '.database.schemaIdentity // ""' evidence/migration-readiness.json)"
+          ready="$(jq -r '.status // ""' evidence/migration-readiness.json)"
+          compatible=false
+          if [[ "$ready" == "ready" && -n "$current" && "$current" != "unversioned" ]] \
+            && { [[ "$expected" == "$current" ]] || [[ "$expected" == "$current,"* ]]; }; then
+            compatible=true
+          fi
+          jq -n \
+            --arg current "$current" \
+            --arg candidate "$expected" \
+            --argjson compatible "$compatible" \
+            '{check:"migration-compatibility", current_schema:$current,
+              candidate_schema:$candidate, compatible:$compatible}' \
+            > evidence/migration-check.json.pending
+          set +e
+          jq -e '.compatible == true' evidence/migration-check.json.pending > /dev/null
+          checker_status=$?
+          set -e
+          mv evidence/migration-check.json.pending evidence/migration-check.json
+          exit "$checker_status"
+
+      - name: "Diagnostic: record migration compatibility"
+        if: ${{ always() }}
         uses: ./.github/actions/deployment-diagnostic
         with:
           check-id: migration-compatibility-precheck
           category: migration-precondition
           phase: pre-activation
+          mode: record
+          exit-code: ${{ steps.migration-checker.outcome == 'success' && '0' || '1' }}
           report: evidence/migration-check.json
           report-format: generic-json
           evidence: evidence/migration-readiness.json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
-          run: |
-            set -euo pipefail
-            mkdir -p evidence
-            curl -fsS --max-time "$HTTP_TIMEOUT_SECONDS" \
-              "$PRODUCTION_URL$READY_PATH?migration-compat=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
-              > evidence/migration-readiness.json
-            expected="$(find lib/migrations -maxdepth 1 -type f -name '*.sql' \
-              -exec basename {} \; | sort | paste -sd, -)"
-            current="$(jq -r '.database.schemaIdentity // ""' evidence/migration-readiness.json)"
-            ready="$(jq -r '.status // ""' evidence/migration-readiness.json)"
-            compatible=false
-            if [[ "$ready" == "ready" && -n "$current" && "$current" != "unversioned" ]] \
-              && { [[ "$expected" == "$current" ]] || [[ "$expected" == "$current,"* ]]; }; then
-              compatible=true
-            fi
-            jq -n \
-              --arg current "$current" \
-              --arg candidate "$expected" \
-              --argjson compatible "$compatible" \
-              '{check:"migration-compatibility", current_schema:$current,
-                candidate_schema:$candidate, compatible:$compatible}' \
-              > evidence/migration-check.json
-            jq -e '.compatible == true' evidence/migration-check.json > /dev/null
 
-      - name: "Diagnostic: backup and recovery freshness"
+      - name: Check backup and recovery freshness
+        id: recovery-checker
+        continue-on-error: true
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          rm -f evidence/recovery-check.json
+          backups="$(az webapp config backup list \
+            --resource-group "$RG" --webapp-name "$WEBAPP" \
+            --query '[].{status:status,completed:finishedTimeStamp,created:created}' \
+            --output json)"
+          latest="$(jq -r \
+            '[.[] | select(((.status // "") | ascii_downcase) == "succeeded") |
+              (.completed // .created)] |
+              map(select(type == "string" and length > 0)) | sort | last // ""' \
+            <<<"$backups")"
+          fresh=false
+          age_seconds=null
+          if [[ -n "$latest" ]]; then
+            latest_epoch="$(date -u -d "$latest" +%s)"
+            now_epoch="$(date -u +%s)"
+            age_seconds=$((now_epoch - latest_epoch))
+            if (( age_seconds >= 0 && age_seconds <= 93600 )); then
+              fresh=true
+            fi
+          fi
+          rollback_ready=false
+          if [[ "$PREVIOUS_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            rollback_ready=true
+          fi
+          jq -n \
+            --arg latest "$latest" \
+            --argjson age_seconds "$age_seconds" \
+            --argjson fresh "$fresh" \
+            --argjson rollback_ready "$rollback_ready" \
+            '{check:"backup-freshness", rpo_hours:26,
+              latest_successful_backup:($latest | if length > 0 then . else null end),
+              age_seconds:$age_seconds, fresh_backup:$fresh,
+              rollback_image_resolved:$rollback_ready}' \
+            > evidence/recovery-check.json.pending
+          set +e
+          jq -e '.fresh_backup == true and .rollback_image_resolved == true' \
+            evidence/recovery-check.json.pending > /dev/null
+          checker_status=$?
+          set -e
+          mv evidence/recovery-check.json.pending evidence/recovery-check.json
+          exit "$checker_status"
+
+      - name: "Diagnostic: record backup and recovery freshness"
+        if: ${{ always() }}
         uses: ./.github/actions/deployment-diagnostic
         with:
           check-id: recovery-precondition-precheck
           category: recovery-precondition
           phase: pre-activation
+          mode: record
+          exit-code: ${{ steps.recovery-checker.outcome == 'success' && '0' || '1' }}
           report: evidence/recovery-check.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
-          run: |
-            set -euo pipefail
-            mkdir -p evidence
-            backups="$(az webapp config backup list \
-              --resource-group "$RG" --webapp-name "$WEBAPP" \
-              --query '[].{status:status,completed:finishedTimeStamp,created:created}' \
-              --output json)"
-            latest="$(jq -r \
-              '[.[] | select(((.status // "") | ascii_downcase) == "succeeded") |
-                (.completed // .created)] |
-                map(select(type == "string" and length > 0)) | sort | last // ""' \
-              <<<"$backups")"
-            fresh=false
-            age_seconds=null
-            if [[ -n "$latest" ]]; then
-              latest_epoch="$(date -u -d "$latest" +%s)"
-              now_epoch="$(date -u +%s)"
-              age_seconds=$((now_epoch - latest_epoch))
-              if (( age_seconds >= 0 && age_seconds <= 93600 )); then
-                fresh=true
-              fi
-            fi
-            rollback_ready=false
-            if [[ "$PREVIOUS_IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-              rollback_ready=true
-            fi
-            jq -n \
-              --arg latest "$latest" \
-              --argjson age_seconds "$age_seconds" \
-              --argjson fresh "$fresh" \
-              --argjson rollback_ready "$rollback_ready" \
-              '{check:"backup-freshness", rpo_hours:26,
-                latest_successful_backup:($latest | if length > 0 then . else null end),
-                age_seconds:$age_seconds, fresh_backup:$fresh,
-                rollback_image_resolved:$rollback_ready}' \
-              > evidence/recovery-check.json
-            jq -e '.fresh_backup == true and .rollback_image_resolved == true' \
-              evidence/recovery-check.json > /dev/null
 
-      - name: "Diagnostic: pre-activation readiness"
+      - name: Check pre-activation readiness
+        id: readiness-checker
+        continue-on-error: true
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          rm -f evidence/readiness-check.json
+          curl -fsS --max-time "$HTTP_TIMEOUT_SECONDS" \
+            "$PRODUCTION_URL$READY_PATH?preflight-readiness=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            > evidence/readiness-check.json.pending
+          set +e
+          jq -e '
+            .status == "ready" and
+            .database.authority == "sqlite" and
+            .database.journalMode == "delete" and
+            .lifecycle == "running"
+          ' evidence/readiness-check.json.pending > /dev/null
+          checker_status=$?
+          set -e
+          mv evidence/readiness-check.json.pending evidence/readiness-check.json
+          exit "$checker_status"
+
+      - name: "Diagnostic: record pre-activation readiness"
+        if: ${{ always() }}
         uses: ./.github/actions/deployment-diagnostic
         with:
           check-id: readiness-precondition-precheck
           category: readiness-precondition
           phase: pre-activation
+          mode: record
+          exit-code: ${{ steps.readiness-checker.outcome == 'success' && '0' || '1' }}
           report: evidence/readiness-check.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
-          run: |
-            set -euo pipefail
-            mkdir -p evidence
-            curl -fsS --max-time "$HTTP_TIMEOUT_SECONDS" \
-              "$PRODUCTION_URL$READY_PATH?preflight-readiness=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
-              > evidence/readiness-check.json
-            jq -e '
-              .status == "ready" and
-              .database.authority == "sqlite" and
-              .database.journalMode == "delete" and
-              .lifecycle == "running"
-            ' evidence/readiness-check.json > /dev/null
 
-      - name: "Diagnostic: monitoring resources"
+      - name: Check monitoring resources
+        id: monitoring-checker
+        continue-on-error: true
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          rm -f evidence/monitor-precheck.json
+          app_id="$(az webapp show --resource-group "$RG" --name "$WEBAPP" \
+            --query id --output tsv)"
+          approved_action_group="/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Insights/actionGroups/ag-recovery-alerts"
+          alerts="$(az monitor metrics alert list --resource-group "$RG" \
+            --query '[].{name:name,enabled:enabled,scopes:scopes,actionGroups:actions[].actionGroupId}' \
+            --output json)"
+          matching_alerts="$(jq --arg app "$app_id" \
+            '[.[] | select(any(.scopes[]?; ascii_downcase == ($app | ascii_downcase)))]' \
+            <<<"$alerts")"
+          start_time="$(date -u -d '2 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+          metrics="$(az monitor metrics list --resource "$app_id" \
+            --metric Http2xx --interval PT1H --aggregation Total \
+            --start-time "$start_time" --output json)"
+          alert_names="$(jq '[.[].name] | sort' <<<"$matching_alerts")"
+          has_alert="$(jq --arg approved "$approved_action_group" \
+            '[.[] | select(.enabled == true) | .actionGroups[]? | ascii_downcase] |
+              any(. == ($approved | ascii_downcase))' <<<"$matching_alerts")"
+          http_2xx_total="$(jq \
+            '[.value[]?.timeseries[]?.data[]? | (.total // 0)] | add // 0' \
+            <<<"$metrics")"
+          recent_success=false
+          if jq -e 'tonumber > 0' <<<"$http_2xx_total" > /dev/null; then
+            recent_success=true
+          fi
+          jq -n \
+            --argjson alert_names "$alert_names" \
+            --argjson has_alert "$has_alert" \
+            --argjson http_2xx_total "$http_2xx_total" \
+            --argjson recent_success "$recent_success" \
+            '{check:"monitor-precheck", lookback_hours:2,
+              alert_names:$alert_names, has_enabled_approved_alert:$has_alert,
+              http_2xx_total:$http_2xx_total,
+              recent_successful_sample:$recent_success}' \
+            > evidence/monitor-precheck.json.pending
+          set +e
+          jq -e \
+            '.has_enabled_approved_alert == true and .recent_successful_sample == true' \
+            evidence/monitor-precheck.json.pending > /dev/null
+          checker_status=$?
+          set -e
+          mv evidence/monitor-precheck.json.pending evidence/monitor-precheck.json
+          exit "$checker_status"
+
+      - name: "Diagnostic: record monitoring resources"
+        if: ${{ always() }}
         uses: ./.github/actions/deployment-diagnostic
         with:
           check-id: monitoring-precheck
           category: monitoring-precheck
           phase: pre-activation
+          mode: record
+          exit-code: ${{ steps.monitoring-checker.outcome == 'success' && '0' || '1' }}
           report: evidence/monitor-precheck.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
-          run: |
-            set -euo pipefail
-            mkdir -p evidence
-            app_id="$(az webapp show --resource-group "$RG" --name "$WEBAPP" \
-              --query id --output tsv)"
-            approved_action_group="/subscriptions/$AZURE_SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Insights/actionGroups/ag-recovery-alerts"
-            alerts="$(az monitor metrics alert list --resource-group "$RG" \
-              --query "[?contains(scopes, '$app_id')].{name:name,enabled:enabled,actionGroups:actions[].actionGroupId}" \
-              --output json)"
-            start_time="$(date -u -d '2 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
-            metrics="$(az monitor metrics list --resource "$app_id" \
-              --metric Http2xx --interval PT1H --aggregation Total \
-              --start-time "$start_time" --output json)"
-            alert_names="$(jq '[.[].name] | sort' <<<"$alerts")"
-            has_alert="$(jq --arg approved "$approved_action_group" \
-              '[.[] | select(.enabled == true) | .actionGroups[]? | ascii_downcase] |
-                any(. == ($approved | ascii_downcase))' <<<"$alerts")"
-            http_2xx_total="$(jq \
-              '[.value[]?.timeseries[]?.data[]? | (.total // 0)] | add // 0' \
-              <<<"$metrics")"
-            recent_success=false
-            if jq -e 'tonumber > 0' <<<"$http_2xx_total" > /dev/null; then
-              recent_success=true
-            fi
-            jq -n \
-              --argjson alert_names "$alert_names" \
-              --argjson has_alert "$has_alert" \
-              --argjson http_2xx_total "$http_2xx_total" \
-              --argjson recent_success "$recent_success" \
-              '{check:"monitor-precheck", lookback_hours:2,
-                alert_names:$alert_names, has_enabled_approved_alert:$has_alert,
-                http_2xx_total:$http_2xx_total,
-                recent_successful_sample:$recent_success}' \
-              > evidence/monitor-precheck.json
-            jq -e \
-              '.has_enabled_approved_alert == true and .recent_successful_sample == true' \
-              evidence/monitor-precheck.json > /dev/null
 
-      - name: "Diagnostic: protected configuration"
+      - name: Check protected configuration
+        id: protected-config-checker
+        continue-on-error: true
+        timeout-minutes: 1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          rm -f evidence/config-fingerprint.json
+          config="$(az webapp config show \
+            --resource-group "$RG" --name "$WEBAPP" \
+            --query '{alwaysOn:alwaysOn, workers:numberOfWorkers, image:linuxFxVersion}' \
+            --output json)"
+          jq '{
+            check:"site-invariant-fingerprint",
+            invariants:[
+              {name:"alwaysOn", matches:(.alwaysOn == true)},
+              {name:"numberOfWorkers", matches:(.workers == 1)},
+              {name:"linuxFxVersion", matches:(.image | startswith("DOCKER|"))}
+            ]
+          }' <<<"$config" > evidence/config-fingerprint.json.pending
+          set +e
+          jq -e 'all(.invariants[]; .matches == true)' \
+            evidence/config-fingerprint.json.pending > /dev/null
+          checker_status=$?
+          set -e
+          mv evidence/config-fingerprint.json.pending evidence/config-fingerprint.json
+          exit "$checker_status"
+
+      - name: "Diagnostic: record protected configuration"
+        if: ${{ always() }}
         uses: ./.github/actions/deployment-diagnostic
         with:
           check-id: protected-configuration-precheck
           category: protected-configuration-precheck
           phase: pre-activation
+          mode: record
+          exit-code: ${{ steps.protected-config-checker.outcome == 'success' && '0' || '1' }}
           report: evidence/config-fingerprint.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
-          run: |
-            set -euo pipefail
-            mkdir -p evidence
-            config="$(az webapp config show \
-              --resource-group "$RG" --name "$WEBAPP" \
-              --query '{alwaysOn:alwaysOn, workers:numberOfWorkers, image:linuxFxVersion}' \
-              --output json)"
-            jq '{
-              check:"site-invariant-fingerprint",
-              invariants:[
-                {name:"alwaysOn", matches:(.alwaysOn == true)},
-                {name:"numberOfWorkers", matches:(.workers == 1)},
-                {name:"linuxFxVersion", matches:(.image | startswith("DOCKER|"))}
-              ]
-            }' <<<"$config" > evidence/config-fingerprint.json
-            jq -e 'all(.invariants[]; .matches == true)' \
-              evidence/config-fingerprint.json > /dev/null
 
       - name: Build, push, and inspect digest-pinned candidate
         id: image
@@ -413,6 +523,7 @@ jobs:
       - name: Generate exact-image SBOM
         id: image-sbom
         continue-on-error: true
+        timeout-minutes: 5
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
         with:
           image: ${{ steps.image.outputs.ref }}
@@ -429,7 +540,7 @@ jobs:
           category: sbom
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.image-sbom.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.image-sbom.outcome == 'success' && '0' || '127' }}
           report: evidence/image-sbom.spdx.json
           report-format: spdx-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -437,6 +548,7 @@ jobs:
       - name: Scan exact image for HIGH and CRITICAL vulnerabilities
         id: image-scan
         continue-on-error: true
+        timeout-minutes: 11
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ steps.image.outputs.ref }}
@@ -456,7 +568,7 @@ jobs:
           category: image-scan
           phase: pre-activation
           mode: record
-          exit-code: ${{ steps.image-scan.outcome == 'success' && '0' || '1' }}
+          exit-code: ${{ steps.image-scan.outcome == 'success' && '0' || '127' }}
           report: evidence/trivy-image.json
           report-format: trivy-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
@@ -502,53 +614,101 @@ jobs:
             echo "::warning title=Deployment diagnostics: image-sbom::Exact-image SBOM output is unavailable or malformed, so no SBOM attestation was attached. Deployment continues and the diagnostic record is retained for remediation."
           fi
 
-      - name: "Diagnostic: signature verification"
+      - name: Verify exact image signature
+        id: signature-checker
+        continue-on-error: true
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f evidence/cosign-signature.json
+          workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
+          set +e
+          cosign verify \
+            --certificate-identity "$workflow_identity" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "$IMAGE_REFERENCE" > evidence/cosign-signature.json.pending
+          checker_status=$?
+          set -e
+          mv evidence/cosign-signature.json.pending evidence/cosign-signature.json
+          exit "$checker_status"
+
+      - name: "Diagnostic: record signature verification"
+        if: ${{ always() }}
         uses: ./.github/actions/deployment-diagnostic
         with:
           check-id: signature-verification
           category: signature-provenance
           phase: pre-activation
+          mode: record
+          exit-code: ${{ steps.signature-checker.outcome == 'success' && '0' || '1' }}
           report: evidence/cosign-signature.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
-          run: |
-            workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
-            cosign verify \
-              --certificate-identity "$workflow_identity" \
-              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-              "$IMAGE_REFERENCE" > evidence/cosign-signature.json
 
-      - name: "Diagnostic: provenance attestation verification"
+      - name: Verify provenance attestation
+        id: provenance-checker
+        continue-on-error: true
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f evidence/cosign-provenance.json
+          workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
+          set +e
+          cosign verify-attestation --type slsaprovenance1 \
+            --certificate-identity "$workflow_identity" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "$IMAGE_REFERENCE" > evidence/cosign-provenance.json.pending
+          checker_status=$?
+          set -e
+          mv evidence/cosign-provenance.json.pending evidence/cosign-provenance.json
+          exit "$checker_status"
+
+      - name: "Diagnostic: record provenance attestation verification"
+        if: ${{ always() }}
         uses: ./.github/actions/deployment-diagnostic
         with:
           check-id: provenance-attestation-verification
           category: signature-provenance
           phase: pre-activation
+          mode: record
+          exit-code: ${{ steps.provenance-checker.outcome == 'success' && '0' || '1' }}
           report: evidence/cosign-provenance.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
-          run: |
-            workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
-            cosign verify-attestation --type slsaprovenance1 \
-              --certificate-identity "$workflow_identity" \
-              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-              "$IMAGE_REFERENCE" > evidence/cosign-provenance.json
 
-      - name: "Diagnostic: SBOM attestation verification"
+      - name: Verify SBOM attestation
+        id: sbom-attestation-checker
+        continue-on-error: true
+        timeout-minutes: 2
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f evidence/cosign-sbom.json
+          workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
+          set +e
+          cosign verify-attestation --type spdxjson \
+            --certificate-identity "$workflow_identity" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "$IMAGE_REFERENCE" > evidence/cosign-sbom.json.pending
+          checker_status=$?
+          set -e
+          mv evidence/cosign-sbom.json.pending evidence/cosign-sbom.json
+          exit "$checker_status"
+
+      - name: "Diagnostic: record SBOM attestation verification"
+        if: ${{ always() }}
         uses: ./.github/actions/deployment-diagnostic
         with:
           check-id: provenance-attestation-verification
           category: signature-provenance
           phase: pre-activation
+          mode: record
+          exit-code: ${{ steps.sbom-attestation-checker.outcome == 'success' && '0' || '1' }}
           report: evidence/cosign-sbom.json
           report-format: generic-json
           records: ${{ env.DIAGNOSTIC_RECORDS }}
-          run: |
-            workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
-            cosign verify-attestation --type spdxjson \
-              --certificate-identity "$workflow_identity" \
-              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-              "$IMAGE_REFERENCE" > evidence/cosign-sbom.json
 
       - name: Arm rollback before production mutation
         shell: bash
