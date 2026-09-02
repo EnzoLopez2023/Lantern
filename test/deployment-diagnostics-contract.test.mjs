@@ -8,7 +8,10 @@ import {
   classifyProcess,
   parseReport,
 } from '../scripts/deployment-diagnostic.mjs';
-import { runWithTimeout } from '../scripts/deployment-check-runner.mjs';
+import {
+  runWithTimeout,
+  runWithTimeoutOutcome,
+} from '../scripts/deployment-check-runner.mjs';
 import {
   validateCycloneDxReport,
   validateCosignReport,
@@ -144,6 +147,7 @@ test('missing and malformed checker reports remain execution failures', () => {
     SPDXID: 'SPDXRef-DOCUMENT',
     packages: [null],
   }), false);
+  const imageId = `sha256:${'b'.repeat(64)}`;
   const spdxReport = {
     spdxVersion: 'SPDX-2.3',
     dataLicense: 'CC0-1.0',
@@ -162,12 +166,12 @@ test('missing and malformed checker reports remain execution failures', () => {
       filesAnalyzed: false,
       checksums: [{
         algorithm: 'SHA256',
-        checksumValue: 'a'.repeat(64),
+        checksumValue: 'b'.repeat(64),
       }],
       externalRefs: [{
         referenceCategory: 'PACKAGE-MANAGER',
         referenceType: 'purl',
-        referenceLocator: `pkg:oci/lantern@sha256%3A${'a'.repeat(64)}?arch=amd64`,
+        referenceLocator: `pkg:oci/lantern@sha256%3A${'b'.repeat(64)}?arch=amd64`,
       }],
       primaryPackagePurpose: 'CONTAINER',
     }],
@@ -177,13 +181,13 @@ test('missing and malformed checker reports remain execution failures', () => {
       relationshipType: 'DESCRIBES',
     }],
   };
-  assert.equal(validateSpdxReport(spdxReport, candidate), true);
+  assert.equal(validateSpdxReport(spdxReport, candidate, imageId), true);
   const staleSpdx = structuredClone(spdxReport);
   staleSpdx.packages[0].versionInfo = `sha256:${'c'.repeat(64)}`;
   staleSpdx.packages[0].checksums[0].checksumValue = 'c'.repeat(64);
   staleSpdx.packages[0].externalRefs[0].referenceLocator =
     `pkg:oci/lantern@sha256%3A${'c'.repeat(64)}?arch=amd64`;
-  assert.equal(validateSpdxReport(staleSpdx, candidate), false);
+  assert.equal(validateSpdxReport(staleSpdx, candidate, imageId), false);
   assert.equal(validateTrivyReport({
     SchemaVersion: 0,
     ArtifactName: candidate,
@@ -261,6 +265,13 @@ test('missing and malformed checker reports remain execution failures', () => {
       type: 'cosign container image signature',
     },
   }], candidate, 'signature'), true);
+  assert.equal(validateCosignReport([{
+    critical: {
+      identity: { 'docker-reference': candidate },
+      image: { 'docker-manifest-digest': `sha256:${'a'.repeat(64)}` },
+      type: 'https://sigstore.dev/cosign/sign/v1',
+    },
+  }], candidate, 'signature'), true);
   assert.equal(validateCosignReport({
     _type: 'https://in-toto.io/Statement/v1',
     predicateType: 'https://slsa.dev/provenance/v1',
@@ -275,13 +286,13 @@ test('missing and malformed checker reports remain execution failures', () => {
     predicateType: 'https://spdx.dev/Document',
     subject: [{ name: 'lantern', digest: { sha256: 'a'.repeat(64) } }],
     predicate: spdxReport,
-  }, candidate, 'spdxjson'), true);
+  }, candidate, 'spdxjson', imageId), true);
   assert.equal(validateCosignReport({
     _type: 'https://in-toto.io/Statement/v0.1',
     predicateType: 'https://spdx.dev/Document',
     subject: [{ name: 'lantern', digest: { sha256: 'a'.repeat(64) } }],
     predicate: staleSpdx,
-  }, candidate, 'spdxjson'), false);
+  }, candidate, 'spdxjson', imageId), false);
 });
 
 test('checker runner terminates the complete process group', {
@@ -296,6 +307,26 @@ test('checker runner terminates the complete process group', {
   });
   assert.equal(status, 124);
   assert.ok(Date.now() - started < 1_000, 'a checker descendant survived the timeout');
+});
+
+test('checker runner preserves exit and signal outcomes', {
+  skip: process.platform === 'win32',
+}, async () => {
+  const exited = await runWithTimeoutOutcome({
+    command: process.execPath,
+    args: ['-e', 'process.exit(3)'],
+    timeoutMs: 1_000,
+    killGraceMs: 50,
+  });
+  assert.deepEqual(exited, { exitCode: 3, recordValue: '3' });
+
+  const signaled = await runWithTimeoutOutcome({
+    command: 'bash',
+    args: ['-c', 'kill -TERM $$'],
+    timeoutMs: 1_000,
+    killGraceMs: 50,
+  });
+  assert.deepEqual(signaled, { exitCode: 1, recordValue: 'signal:SIGTERM' });
 });
 
 test('deployment workflow keeps checks observable and operations blocking', async () => {

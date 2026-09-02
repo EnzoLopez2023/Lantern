@@ -16,7 +16,7 @@ function killProcessGroup(child, signal) {
   }
 }
 
-export async function runWithTimeout({
+export async function runWithTimeoutOutcome({
   command,
   args = [],
   timeoutMs,
@@ -37,10 +37,12 @@ export async function runWithTimeout({
 
   let timedOut = false;
   let terminationRequested = false;
+  let terminationSignal = null;
   let forceKillTimer;
   let forceKillComplete;
   const terminate = signal => {
     terminationRequested = true;
+    terminationSignal ??= signal;
     killProcessGroup(child, signal);
     if (!forceKillComplete) {
       forceKillComplete = new Promise(resolveKill => {
@@ -78,16 +80,27 @@ export async function runWithTimeout({
   else clearTimeout(forceKillTimer);
   for (const [signal, handler] of signalHandlers) process.removeListener(signal, handler);
 
-  if (timedOut) return 124;
+  if (timedOut) return { exitCode: 124, recordValue: '124' };
   if (outcome.error) {
     process.stderr.write(`checker could not be started: ${outcome.error.message}\n`);
-    return 127;
+    return {
+      exitCode: 127,
+      recordValue: `spawn-error:${outcome.error.code ?? 'unknown'}`,
+    };
   }
   if (outcome.signal) {
     process.stderr.write(`checker terminated by signal ${outcome.signal}\n`);
-    return 1;
+    return { exitCode: 1, recordValue: `signal:${outcome.signal}` };
   }
-  return outcome.code ?? 1;
+  if (terminationRequested) {
+    return { exitCode: 1, recordValue: `signal:${terminationSignal ?? 'unknown'}` };
+  }
+  const exitCode = outcome.code ?? 1;
+  return { exitCode, recordValue: String(exitCode) };
+}
+
+export async function runWithTimeout(options) {
+  return (await runWithTimeoutOutcome(options)).exitCode;
 }
 
 function parseArgs(argv) {
@@ -102,7 +115,7 @@ function parseArgs(argv) {
   if (timeoutIndex === -1 || timeoutIndex === options.length - 1) {
     throw new Error('--timeout-ms is required');
   }
-  const timeoutMs = Number.parseInt(options[timeoutIndex + 1], 10);
+  const timeoutMs = Number(options[timeoutIndex + 1]);
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) {
     throw new Error('--timeout-ms must be a positive integer');
   }
@@ -111,22 +124,23 @@ function parseArgs(argv) {
 
 export async function main(argv) {
   try {
-    return await runWithTimeout(parseArgs(argv));
+    return await runWithTimeoutOutcome(parseArgs(argv));
   } catch (error) {
     process.stderr.write(`${error.message}\n`);
-    return 2;
+    return { exitCode: 2, recordValue: `wrapper-error:${error.message}` };
   }
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === `file://${resolve(process.argv[1])}`;
 if (invokedDirectly) {
-  const status = await main(process.argv.slice(2));
+  const outcome = await main(process.argv.slice(2));
   if (process.env.GITHUB_OUTPUT) {
     try {
-      appendFileSync(process.env.GITHUB_OUTPUT, `exit_code=${status}\n`);
+      const recordValue = String(outcome.recordValue).replace(/[\r\n]/g, ' ');
+      appendFileSync(process.env.GITHUB_OUTPUT, `exit_code=${recordValue}\n`);
     } catch (error) {
       process.stderr.write(`could not publish checker exit code: ${error.message}\n`);
     }
   }
-  process.exit(status);
+  process.exit(outcome.exitCode);
 }

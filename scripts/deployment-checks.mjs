@@ -16,6 +16,14 @@ import { basename, join, resolve } from 'node:path';
 const EVIDENCE_DIR = 'evidence';
 const MAX_OUTPUT_BYTES = 32 * 1024 * 1024;
 
+class CheckerProcessError extends Error {
+  constructor(message, { exitCode = null, signal = null } = {}) {
+    super(message);
+    this.exitCode = exitCode;
+    this.signal = signal;
+  }
+}
+
 function reportPaths(name) {
   const final = join(EVIDENCE_DIR, name);
   return { final, pending: `${final}.pending` };
@@ -36,12 +44,16 @@ function runToFile(command, args, output, env = process.env) {
       stdio: ['ignore', descriptor, 'inherit'],
     });
     if (result.error) {
-      process.stderr.write(`checker could not start: ${result.error.message}\n`);
-      return result.error.code === 'ENOENT' ? 127 : 126;
+      throw new CheckerProcessError(
+        `checker could not start: ${result.error.message}`,
+        { exitCode: result.error.code === 'ENOENT' ? 127 : 126 },
+      );
     }
     if (result.signal) {
-      process.stderr.write(`checker terminated by signal ${result.signal}\n`);
-      return 128;
+      throw new CheckerProcessError(
+        `checker terminated by signal ${result.signal}`,
+        { signal: result.signal },
+      );
     }
     return result.status ?? 1;
   } finally {
@@ -57,9 +69,24 @@ function runCaptured(command, args, env = process.env) {
     shell: false,
     stdio: ['ignore', 'pipe', 'inherit'],
   });
-  if (result.error) throw new Error(`${command} could not start: ${result.error.message}`);
-  if (result.signal) throw new Error(`${command} terminated by signal ${result.signal}`);
-  if (result.status !== 0) throw new Error(`${command} exited ${result.status}`);
+  if (result.error) {
+    throw new CheckerProcessError(
+      `${command} could not start: ${result.error.message}`,
+      { exitCode: result.error.code === 'ENOENT' ? 127 : 126 },
+    );
+  }
+  if (result.signal) {
+    throw new CheckerProcessError(
+      `${command} terminated by signal ${result.signal}`,
+      { signal: result.signal },
+    );
+  }
+  if (result.status !== 0) {
+    throw new CheckerProcessError(
+      `${command} exited ${result.status}`,
+      { exitCode: result.status },
+    );
+  }
   return result.stdout;
 }
 
@@ -239,9 +266,12 @@ export function validateCycloneDxReport(report, expectedPackage) {
   );
 }
 
-export function validateSpdxReport(report, expectedImageReference) {
+export function validateSpdxReport(report, expectedImageReference, expectedImageId) {
   const expected = expectedDigestParts(expectedImageReference);
-  if (!expected) return false;
+  const configDigest = /^sha256:[0-9a-f]{64}$/.test(expectedImageId ?? '')
+    ? expectedImageId
+    : null;
+  if (!expected || !configDigest) return false;
   const imageName = expectedImageReference
     ?.split('@')[0]
     .split('/')
@@ -303,9 +333,9 @@ export function validateSpdxReport(report, expectedImageReference) {
     rootPackage.checksums.some(checksum =>
       isPlainObject(checksum) &&
       checksum.algorithm === 'SHA256' &&
-      checksum.checksumValue === expected.digestHex) &&
+      checksum.checksumValue === configDigest.slice('sha256:'.length)) &&
     /^pkg:oci\//.test(decodedRootPurl) &&
-    decodedRootPurl.includes(`@${expected.digest}`) &&
+    decodedRootPurl.includes(`@${configDigest}`) &&
     Array.isArray(report.relationships) &&
     report.relationships.some(relationship =>
       isPlainObject(relationship) &&
@@ -336,7 +366,13 @@ function expectedDigestParts(expectedImageReference) {
   return { digest, digestHex: digest.slice('sha256:'.length), repository };
 }
 
-function statementMatches(statement, digestHex, predicateKind, expectedImageReference) {
+function statementMatches(
+  statement,
+  digestHex,
+  predicateKind,
+  expectedImageReference,
+  expectedImageId,
+) {
   const predicateTypes = {
     slsaprovenance1: 'https://slsa.dev/provenance/v1',
     spdxjson: 'https://spdx.dev/Document',
@@ -358,7 +394,7 @@ function statementMatches(statement, digestHex, predicateKind, expectedImageRefe
         isPlainObject(statement.predicate.runDetails) &&
         isPlainObject(statement.predicate.runDetails.builder) &&
         nonEmptyString(statement.predicate.runDetails.builder.id)
-      : validateSpdxReport(statement.predicate, expectedImageReference)),
+      : validateSpdxReport(statement.predicate, expectedImageReference, expectedImageId)),
   );
 }
 
@@ -380,26 +416,46 @@ function decodeEnvelopeStatement(entry) {
   }
 }
 
-export function validateCosignReport(report, expectedImageReference, kind) {
+export function validateCosignReport(
+  report,
+  expectedImageReference,
+  kind,
+  expectedImageId = null,
+) {
   const expected = expectedDigestParts(expectedImageReference);
   if (!expected || !['signature', 'slsaprovenance1', 'spdxjson'].includes(kind)) return false;
   const entries = Array.isArray(report) ? report : [report];
   if (entries.length === 0) return false;
   if (kind === 'signature') {
-    return entries.every(entry =>
-      isPlainObject(entry) &&
-      isPlainObject(entry.critical) &&
-      isPlainObject(entry.critical.identity) &&
-      entry.critical.identity['docker-reference'] === expected.repository &&
-      isPlainObject(entry.critical.image) &&
-      entry.critical.image['docker-manifest-digest'] === expected.digest &&
-      entry.critical.type === 'cosign container image signature');
+    return entries.every(entry => {
+      if (
+        !isPlainObject(entry) ||
+        !isPlainObject(entry.critical) ||
+        !isPlainObject(entry.critical.identity) ||
+        !isPlainObject(entry.critical.image) ||
+        entry.critical.image['docker-manifest-digest'] !== expected.digest
+      ) {
+        return false;
+      }
+      const type = entry.critical.type;
+      const reference = entry.critical.identity['docker-reference'];
+      return (
+        (type === 'cosign container image signature' && reference === expected.repository) ||
+        (type === 'https://sigstore.dev/cosign/sign/v1' && reference === expectedImageReference)
+      );
+    });
   }
   return entries.every(entry => {
     const statement = nonEmptyString(entry?.payload)
       ? decodeEnvelopeStatement(entry)
       : entry;
-    return statementMatches(statement, expected.digestHex, kind, expectedImageReference);
+    return statementMatches(
+      statement,
+      expected.digestHex,
+      kind,
+      expectedImageReference,
+      expectedImageId,
+    );
   });
 }
 
@@ -693,6 +749,20 @@ function protectedConfiguration() {
   return invariants.every(invariant => invariant.matches) ? 0 : 1;
 }
 
+function candidateImageId() {
+  const imageId = runCaptured('docker', [
+    'image',
+    'inspect',
+    '--format',
+    '{{.Id}}',
+    process.env.IMAGE_REFERENCE,
+  ]).trim();
+  if (!/^sha256:[0-9a-f]{64}$/.test(imageId)) {
+    throw new Error('candidate image config digest is malformed');
+  }
+  return imageId;
+}
+
 function imageSbom() {
   const paths = reportPaths('image-sbom.spdx.json');
   prepareReport(paths);
@@ -707,10 +777,11 @@ function imageSbom() {
     { ...process.env, SYFT_CHECK_FOR_APP_UPDATE: 'false' },
   );
   if (status !== 0) return status;
+  const imageId = candidateImageId();
   validateAndPublish(
     paths,
     'image SBOM',
-    report => validateSpdxReport(report, process.env.IMAGE_REFERENCE),
+    report => validateSpdxReport(report, process.env.IMAGE_REFERENCE, imageId),
   );
   return 0;
 }
@@ -741,10 +812,17 @@ function imageScan() {
     stdio: 'inherit',
   });
   if (status.error) {
-    process.stderr.write(`checker could not start: ${status.error.message}\n`);
-    return status.error.code === 'ENOENT' ? 127 : 126;
+    throw new CheckerProcessError(
+      `checker could not start: ${status.error.message}`,
+      { exitCode: status.error.code === 'ENOENT' ? 127 : 126 },
+    );
   }
-  if (status.signal) return 128;
+  if (status.signal) {
+    throw new CheckerProcessError(
+      `checker terminated by signal ${status.signal}`,
+      { signal: status.signal },
+    );
+  }
   if (status.status !== 0) return status.status ?? 1;
   validateAndPublish(
     paths,
@@ -758,10 +836,16 @@ function cosignVerification({ report, args, kind }) {
   const paths = reportPaths(report);
   prepareReport(paths);
   const status = runToFile('cosign', args, paths.pending);
+  const imageId = kind === 'spdxjson' ? candidateImageId() : null;
   validateAndPublish(
     paths,
     'Cosign',
-    value => validateCosignReport(value, process.env.IMAGE_REFERENCE, kind),
+    value => validateCosignReport(
+      value,
+      process.env.IMAGE_REFERENCE,
+      kind,
+      imageId,
+    ),
   );
   return status;
 }
@@ -836,22 +920,38 @@ const CHECKS = new Map([
   ['sbom-attestation', sbomAttestationVerification],
 ]);
 
-export function main(argv) {
+function executeCheck(argv) {
   const [name] = argv;
   const check = CHECKS.get(name);
   if (!check) {
     process.stderr.write(`unknown deployment check: ${name ?? '(none)'}\n`);
-    return 2;
+    return { exitCode: 2, signal: null };
   }
   try {
-    return check();
+    return { exitCode: check(), signal: null };
   } catch (error) {
     process.stderr.write(`${error.message}\n`);
-    return 2;
+    if (error instanceof CheckerProcessError) {
+      return { exitCode: error.exitCode, signal: error.signal };
+    }
+    return { exitCode: 2, signal: null };
   }
+}
+
+export function main(argv) {
+  return executeCheck(argv).exitCode ?? 1;
 }
 
 const invokedDirectly = process.argv[1] && import.meta.url === `file://${resolve(process.argv[1])}`;
 if (invokedDirectly) {
-  process.exit(main(process.argv.slice(2)));
+  const outcome = executeCheck(process.argv.slice(2));
+  if (outcome.signal) {
+    try {
+      process.kill(process.pid, outcome.signal);
+      await new Promise(resolveSignal => setTimeout(resolveSignal, 1_000));
+    } catch (error) {
+      process.stderr.write(`could not propagate checker signal ${outcome.signal}: ${error.message}\n`);
+    }
+  }
+  process.exit(outcome.exitCode ?? 1);
 }
