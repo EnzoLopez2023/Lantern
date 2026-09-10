@@ -1,12 +1,8 @@
-# Build, attest, and deploy Lantern to Azure — one action, every push to main.
-#
-# Flow: source gates -> az acr build (digest-pinned candidate) -> image SBOM +
-# Trivy scan -> cosign keyless sign + SLSA provenance + SBOM attestation ->
-# stop / repin container to the exact digest / update release app settings /
-# start -> poll /api/live + /api/ready + /api/version for N consecutive exact
-# confirmations -> promote :latest. Any failure after the "Arm rollback" step
-# repins the previous digest, restores the previous release app settings, and
-# restores the previous :latest.
+# Build once on the runner, test that image, and push its immutable candidate.
+# Deployment and existing advisory diagnostics are siblings: neither diagnostics
+# nor their artifact publication is a prerequisite for build or activation.
+# Only production mutation holds the deployment lock. Failed activation restores
+# the previous digest, release app settings, and :latest under the same lock.
 #
 # Manual rollback (if this workflow itself is broken):
 #   az webapp config container set -g rg-personal-apps-prod \
@@ -26,10 +22,6 @@ on:
       - '.gitignore'
       - '.claude/**'
   workflow_dispatch:
-
-concurrency:
-  group: deploy-lantern
-  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -55,18 +47,20 @@ env:
   ROLLBACK_MAX_ATTEMPTS: '30'
   POLL_INTERVAL_SECONDS: '5'
   HTTP_TIMEOUT_SECONDS: '8'
-  DEPLOYMENT_MUTATED: 'false'
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-
+    timeout-minutes: 25
+    outputs:
+      ref: ${{ steps.image.outputs.ref }}
+      digest: ${{ steps.image.outputs.digest }}
+      build-id: ${{ steps.release.outputs.build-id }}
     steps:
       - name: Checkout exact source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          fetch-depth: 0
+          ref: ${{ github.sha }}
 
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -74,26 +68,312 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Source, dependency, and SBOM gates
+      - name: Source checks without duplicate compilation
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p evidence
           npm ci --no-audit --no-fund
-          npm run check
+          npm run check:source
 
-          set +e
-          npm audit --omit=dev --audit-level=high --json > evidence/npm-audit.json
-          audit_status=$?
-          set -e
-          jq -e 'type == "object"' evidence/npm-audit.json > /dev/null
-          if [[ "$audit_status" -ne 0 ]]; then
-            echo "::error::Production dependency audit found HIGH or CRITICAL findings"
-            exit "$audit_status"
+      - name: Set up cached runner builder
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Identify immutable candidate
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+          build_id="$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          candidate_tag="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY:$GITHUB_SHA-$build_id"
+          {
+            echo "build-id=$build_id"
+            echo "tag=$candidate_tag"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "BUILD_ID=$build_id"
+            echo "CANDIDATE_TAG=$candidate_tag"
+          } >> "$GITHUB_ENV"
+
+      - name: Build the candidate once
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          load: true
+          push: false
+          tags: ${{ steps.release.outputs.tag }}
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
+            BUILD_ID=${{ steps.release.outputs.build-id }}
+          cache-from: type=gha,scope=lantern
+          cache-to: type=gha,mode=max,scope=lantern
+
+      - name: Inspect and test the final candidate image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker image inspect "$CANDIDATE_TAG" --format '{{json .Config.Volumes}}' \
+            | jq -e '[((. // {}) | keys[]) | select(. == "/home" or startswith("/home/"))] | length == 0' > /dev/null
+          [[ "$(docker image inspect "$CANDIDATE_TAG" \
+            --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" == "$GITHUB_SHA" ]]
+          [[ "$(docker image inspect "$CANDIDATE_TAG" \
+            --format '{{index .Config.Labels "org.opencontainers.image.version"}}')" == "$BUILD_ID" ]]
+
+          docker run --rm --env NODE_ENV=test \
+            --tmpfs /app/data:uid=1000,gid=1000,mode=0700 \
+            --mount "type=bind,source=$GITHUB_WORKSPACE/test,target=/app/test,readonly" \
+            --entrypoint node "$CANDIDATE_TAG" --test \
+            test/backend/database.test.js test/backend/bootstrap.test.js test/backend/recovery.test.js
+          echo "TESTED_IMAGE_ID=$(docker image inspect "$CANDIDATE_TAG" --format '{{.Id}}')" >> "$GITHUB_ENV"
+
+      - name: Azure login with OIDC
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Push the tested image and resolve its exact digest
+        id: image
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY"
+          az acr login --name "$ACR"
+          docker push "$CANDIDATE_TAG"
+
+          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$CANDIDATE_TAG" | sed 's/.*@//')"
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            digest="$(az acr repository show --name "$ACR" \
+              --image "$IMAGE_REPOSITORY:$GITHUB_SHA-$BUILD_ID" --query digest --output tsv)"
           fi
+          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
 
-          npm sbom --sbom-format=cyclonedx > evidence/source-sbom.cdx.json
-          jq -e 'type == "object"' evidence/source-sbom.cdx.json > /dev/null
+          image_ref="$repo@$digest"
+          docker pull "$image_ref"
+          [[ "$(docker image inspect "$image_ref" --format '{{.Id}}')" == "$TESTED_IMAGE_ID" ]]
+
+          {
+            echo "ref=$image_ref"
+            echo "digest=$digest"
+          } >> "$GITHUB_OUTPUT"
+
+  diagnostics:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      IMAGE_REFERENCE: ${{ needs.build.outputs.ref }}
+      DIAGNOSTIC_CANDIDATE_DIGEST: ${{ needs.build.outputs.digest }}
+      DIAGNOSTIC_BUILD_ID: ${{ needs.build.outputs.build-id }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies for source diagnostics
+        continue-on-error: true
+        run: npm ci --no-audit --no-fund
+
+      - name: Diagnostic - production dependency audit
+        if: ${{ always() }}
+        uses: ./.github/actions/deployment-diagnostic
+        with:
+          check-id: source-dependency-audit
+          category: source-audit
+          phase: pre-build
+          report: evidence/npm-audit.json
+          report-format: npm-audit-json
+          run: |
+            mkdir -p evidence
+            npm audit --omit=dev --audit-level=high --json > evidence/npm-audit.json
+
+      - name: Diagnostic - source SBOM
+        if: ${{ always() }}
+        uses: ./.github/actions/deployment-diagnostic
+        with:
+          check-id: source-sbom
+          category: sbom
+          phase: pre-build
+          report: evidence/source-sbom.cdx.json
+          report-format: cyclonedx-json
+          run: |
+            mkdir -p evidence
+            npm sbom --sbom-format=cyclonedx > evidence/source-sbom.cdx.json
+
+      - name: Azure login with OIDC
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Authenticate to the candidate registry
+        if: ${{ always() }}
+        continue-on-error: true
+        run: az acr login --name "$ACR"
+
+      - name: Generate exact-image SBOM
+        id: image-sbom
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
+        with:
+          image: ${{ env.IMAGE_REFERENCE }}
+          format: spdx-json
+          output-file: evidence/image-sbom.spdx.json
+          upload-artifact: false
+          upload-release-assets: false
+
+      - name: Diagnostic - record exact-image SBOM
+        if: ${{ always() }}
+        uses: ./.github/actions/deployment-diagnostic
+        with:
+          check-id: image-sbom
+          category: sbom
+          phase: pre-activation
+          mode: record
+          exit-code: ${{ steps.image-sbom.outcome == 'success' && '0' || '' }}
+          execution-error: ${{ steps.image-sbom.outcome != 'success' && format('Image SBOM action outcome was {0}; process exit code unavailable', steps.image-sbom.outcome) || '' }}
+          report: evidence/image-sbom.spdx.json
+          report-format: spdx-json
+
+      - name: Scan exact image for HIGH and CRITICAL vulnerabilities
+        id: image-scan
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_REFERENCE }}
+          format: json
+          output: evidence/trivy-image.json
+          exit-code: '0'
+          ignore-unfixed: false
+          severity: HIGH,CRITICAL
+          scanners: vuln
+          timeout: 10m
+
+      - name: Diagnostic - record image vulnerability scan
+        if: ${{ always() }}
+        uses: ./.github/actions/deployment-diagnostic
+        with:
+          check-id: image-vulnerability-scan
+          category: image-scan
+          phase: pre-activation
+          mode: record
+          exit-code: ${{ steps.image-scan.outcome == 'success' && '0' || '' }}
+          execution-error: ${{ steps.image-scan.outcome != 'success' && format('Image scan action outcome was {0}; process exit code unavailable', steps.image-scan.outcome) || '' }}
+          report: evidence/trivy-image.json
+          report-format: trivy-json
+
+      - name: Install Cosign
+        if: ${{ always() }}
+        continue-on-error: true
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+
+      - name: Diagnostic - sign, attest, and verify the exact image
+        if: ${{ always() }}
+        uses: ./.github/actions/deployment-diagnostic
+        with:
+          check-id: image-signature-provenance
+          category: signature-provenance
+          phase: pre-activation
+          report: evidence/cosign-sbom.json
+          report-format: generic-json
+          evidence: |
+            evidence/provenance.slsa.json
+            evidence/cosign-signature.json
+            evidence/cosign-provenance.json
+          run: |
+            set -euo pipefail
+            workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
+            started_on="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            jq -n \
+              --arg buildType "https://github.com/EnzoLopez2023/azure-infra/blob/main/DEPLOYMENT_RUNBOOK.md" \
+              --arg repository "git+https://github.com/$GITHUB_REPOSITORY" \
+              --arg sha "$GITHUB_SHA" \
+              --arg workflow "$workflow_identity" \
+              --arg invocation "$DIAGNOSTIC_BUILD_ID" \
+              --arg started "$started_on" \
+              '{
+                buildDefinition: {
+                  buildType: $buildType,
+                  externalParameters: { repository: $repository, ref: env.GITHUB_REF },
+                  internalParameters: { invocationId: $invocation },
+                  resolvedDependencies: [{ uri: $repository, digest: { gitCommit: $sha } }]
+                },
+                runDetails: {
+                  builder: { id: $workflow },
+                  metadata: { invocationId: $invocation, startedOn: $started }
+                }
+              }' > evidence/provenance.slsa.json
+
+            cosign sign --yes "$IMAGE_REFERENCE"
+            cosign attest --yes --predicate evidence/provenance.slsa.json \
+              --type slsaprovenance1 "$IMAGE_REFERENCE"
+            cosign attest --yes --predicate evidence/image-sbom.spdx.json \
+              --type spdxjson "$IMAGE_REFERENCE"
+
+            cosign verify \
+              --certificate-identity "$workflow_identity" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              "$IMAGE_REFERENCE" > evidence/cosign-signature.json
+            cosign verify-attestation --type slsaprovenance1 \
+              --certificate-identity "$workflow_identity" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              "$IMAGE_REFERENCE" > evidence/cosign-provenance.json
+            cosign verify-attestation --type spdxjson \
+              --certificate-identity "$workflow_identity" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              "$IMAGE_REFERENCE" > evidence/cosign-sbom.json
+
+      - name: Summarize diagnostics
+        if: ${{ always() }}
+        uses: ./.github/actions/deployment-diagnostic
+        with:
+          mode: aggregate
+          check-id: deployment-diagnostics
+          category: nested-checker
+          phase: pre-activation
+
+      - name: Upload original reports and diagnostic records
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: deployment-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            evidence/
+            deployment-diagnostics/
+          if-no-files-found: warn
+          retention-days: 30
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: deploy-lantern
+      queue: max
+      cancel-in-progress: false
+    env:
+      IMAGE_REFERENCE: ${{ needs.build.outputs.ref }}
+      IMAGE_DIGEST: ${{ needs.build.outputs.digest }}
+      BUILD_ID: ${{ needs.build.outputs.build-id }}
+      DEPLOYMENT_MUTATED: 'false'
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
 
       - name: Azure login with OIDC
         uses: azure/login@7184910d9eb2b1c5e48f7073824a90609bb9b6d6 # v2.3.1
@@ -103,10 +383,11 @@ jobs:
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
       - name: Capture prior release and protected configuration
+        timeout-minutes: 5
         shell: bash
         run: |
           set -euo pipefail
-
+          mkdir -p evidence
           config="$(az webapp config show \
             --resource-group "$RG" --name "$WEBAPP" \
             --query '{alwaysOn:alwaysOn, workers:numberOfWorkers, image:linuxFxVersion}' \
@@ -134,21 +415,42 @@ jobs:
               ;;
           esac
           [[ "$previous_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-
           previous_latest_digest="$(az acr repository show --name "$ACR" \
-            --image "$IMAGE_REPOSITORY:latest" --query digest --output tsv 2>/dev/null || true)"
-          [[ "$previous_latest_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || previous_latest_digest="$previous_digest"
+            --image "$IMAGE_REPOSITORY:latest" --query digest --output tsv)"
+          [[ "$previous_latest_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
 
           prev_settings="$(az webapp config appsettings list \
             --resource-group "$RG" --name "$WEBAPP" --output json)"
           prev_build_sha="$(jq -r '(map({(.name): .value}) | add).BUILD_SHA // ""' <<<"$prev_settings")"
           prev_build_id="$(jq -r '(map({(.name): .value}) | add).BUILD_ID // ""' <<<"$prev_settings")"
+          had_build_sha="$(jq -r 'any(.[]; .name == "BUILD_SHA")' <<<"$prev_settings")"
+          had_build_id="$(jq -r 'any(.[]; .name == "BUILD_ID")' <<<"$prev_settings")"
 
-          prev_version="$(curl -fsS --max-time "$HTTP_TIMEOUT_SECONDS" \
+          # Preload both rollback references before stopping the sole writer.
+          az acr login --name "$ACR"
+          docker pull "$IMAGE_REFERENCE"
+          docker pull "$previous_ref"
+          docker pull "$expected_prefix@$previous_latest_digest"
+          previous_commit="${prev_build_sha:-$(docker image inspect "$previous_ref" \
+            --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')}"
+          previous_build_id="${prev_build_id:-$(docker image inspect "$previous_ref" \
+            --format '{{index .Config.Labels "org.opencontainers.image.version"}}')}"
+          [[ "$previous_commit" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$previous_build_id" =~ ^[0-9]+-[0-9]+$ ]]
+
+          prev_instance_id=''
+          if prev_version="$(curl -fsS --max-time "$HTTP_TIMEOUT_SECONDS" \
             -H 'Cache-Control: no-cache' \
-            "$PRODUCTION_URL$VERSION_PATH?deploy-baseline=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" 2>/dev/null || echo '{}')"
-          prev_instance_id="$(jq -r '.instanceId // ""' <<<"$prev_version")"
-          prev_commit="$(jq -r '.commit // ""' <<<"$prev_version")"
+            "$PRODUCTION_URL$VERSION_PATH?deploy-baseline=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT")" \
+            && jq -e 'type == "object"' <<<"$prev_version" > /dev/null; then
+            prev_instance_id="$(jq -r '.instanceId // "" | strings' <<<"$prev_version")"
+            if [[ ! "$prev_instance_id" =~ ^[A-Za-z0-9_-]*$ ]]; then
+              echo "::warning::Prior runtime instance ID is malformed; no runtime ID will be inferred"
+              prev_instance_id=''
+            fi
+          else
+            echo "::warning::Prior HTTP identity unavailable; rollback uses the captured settings and exact pinned image identity"
+          fi
 
           {
             echo "PREVIOUS_IMAGE_REFERENCE=$previous_ref"
@@ -156,137 +458,69 @@ jobs:
             echo "PREVIOUS_LATEST_DIGEST=$previous_latest_digest"
             echo "PREVIOUS_BUILD_SHA_SETTING=$prev_build_sha"
             echo "PREVIOUS_BUILD_ID_SETTING=$prev_build_id"
+            echo "PREVIOUS_HAD_BUILD_SHA=$had_build_sha"
+            echo "PREVIOUS_HAD_BUILD_ID=$had_build_id"
             echo "PREVIOUS_INSTANCE_ID=$prev_instance_id"
-            echo "PREVIOUS_COMMIT=$prev_commit"
+            echo "PREVIOUS_COMMIT=$previous_commit"
+            echo "PREVIOUS_BUILD_ID=$previous_build_id"
           } >> "$GITHUB_ENV"
-          echo "Prior digest $previous_digest, instance ${prev_instance_id:-unknown}, commit ${prev_commit:-unknown}"
+          echo "Prior digest $previous_digest, instance ${prev_instance_id:-unknown}, commit $previous_commit"
 
-      - name: Build, push, and inspect digest-pinned candidate
-        id: image
+      - name: Reject stale builds inside the production lock
+        timeout-minutes: 1
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         shell: bash
         run: |
           set -euo pipefail
-          BUILD_ID="$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          repo="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY"
-          candidate_tag="$repo:$GITHUB_SHA-$BUILD_ID"
-
-          # The github-lantern-ci identity holds AcrPush (which includes AcrPull)
-          # but not the registry-Contributor action az acr build / az acr import
-          # need, so the image is built on the runner and pushed with docker.
-          az acr login --name "$ACR"
-          docker build \
-            --build-arg "BUILD_SHA=$GITHUB_SHA" \
-            --build-arg "BUILD_ID=$BUILD_ID" \
-            --label "org.opencontainers.image.revision=$GITHUB_SHA" \
-            --label "org.opencontainers.image.version=$BUILD_ID" \
-            --tag "$candidate_tag" \
-            .
-          docker push "$candidate_tag"
-
-          digest="$(docker inspect --format '{{index .RepoDigests 0}}' "$candidate_tag" | sed 's/.*@//')"
-          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-            digest="$(az acr repository show --name "$ACR" \
-              --image "$IMAGE_REPOSITORY:$GITHUB_SHA-$BUILD_ID" --query digest --output tsv)"
+          if ! current_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/$DEFAULT_BRANCH" --jq .sha)"; then
+            echo "::error::Could not resolve the current default branch; production was not mutated"
+            exit 1
           fi
-          [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          if [[ ! "$current_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Default branch lookup did not return a full commit SHA"
+            exit 1
+          fi
+          if [[ "$current_sha" != "$GITHUB_SHA" ]]; then
+            if ! git fetch --no-tags --no-recurse-submodules origin "$current_sha"; then
+              echo "::error::Could not fetch the exact current default commit for comparison"
+              exit 1
+            fi
+            if git merge-base --is-ancestor "$GITHUB_SHA" "$current_sha"; then
+              :
+            else
+              ancestry_status=$?
+              if [[ "$ancestry_status" -eq 1 ]]; then
+                echo "::error::Candidate is not an ancestor of the current default branch"
+              else
+                echo "::error::Git ancestry lookup failed with status $ancestry_status"
+              fi
+              exit 1
+            fi
 
-          image_ref="$repo@$digest"
-          docker pull "$image_ref"
-          docker image inspect "$image_ref" --format '{{json .Config.Volumes}}' \
-            | jq -e '[((. // {}) | keys[]) | select(. == "/home" or startswith("/home/"))] | length == 0' > /dev/null
-          revision="$(docker image inspect "$image_ref" \
-            --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
-          image_version="$(docker image inspect "$image_ref" \
-            --format '{{index .Config.Labels "org.opencontainers.image.version"}}')"
-          [[ "$revision" == "$GITHUB_SHA" ]]
-          [[ "$image_version" == "$BUILD_ID" ]]
-
-          {
-            echo "ref=$image_ref"
-            echo "digest=$digest"
-          } >> "$GITHUB_OUTPUT"
-          {
-            echo "IMAGE_REFERENCE=$image_ref"
-            echo "IMAGE_DIGEST=$digest"
-            echo "BUILD_ID=$BUILD_ID"
-          } >> "$GITHUB_ENV"
-
-      - name: Generate exact-image SBOM
-        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0
-        with:
-          image: ${{ steps.image.outputs.ref }}
-          format: spdx-json
-          output-file: evidence/image-sbom.spdx.json
-          upload-artifact: false
-          upload-release-assets: false
-
-      - name: Scan exact image for HIGH and CRITICAL vulnerabilities
-        # Reported as evidence, not gated: a base-image CVE must not wedge a
-        # production deploy. Flip exit-code to '1' to make it blocking.
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: ${{ steps.image.outputs.ref }}
-          format: json
-          output: evidence/trivy-image.json
-          exit-code: '0'
-          ignore-unfixed: false
-          severity: HIGH,CRITICAL
-          scanners: vuln
-          timeout: 10m
-
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
-
-      - name: Sign and attest exact image
-        shell: bash
-        run: |
-          set -euo pipefail
-          workflow_identity="https://github.com/$GITHUB_REPOSITORY/.github/workflows/deploy.yml@$GITHUB_REF"
-          started_on="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          jq -n \
-            --arg buildType "https://github.com/EnzoLopez2023/azure-infra/blob/main/DEPLOYMENT_RUNBOOK.md" \
-            --arg repository "git+https://github.com/$GITHUB_REPOSITORY" \
-            --arg sha "$GITHUB_SHA" \
-            --arg workflow "$workflow_identity" \
-            --arg invocation "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
-            --arg started "$started_on" \
-            '{
-              buildDefinition: {
-                buildType: $buildType,
-                externalParameters: { repository: $repository, ref: env.GITHUB_REF },
-                internalParameters: { invocationId: $invocation },
-                resolvedDependencies: [{ uri: $repository, digest: { gitCommit: $sha } }]
-              },
-              runDetails: {
-                builder: { id: $workflow },
-                metadata: { invocationId: $invocation, startedOn: $started }
-              }
-            }' > evidence/provenance.slsa.json
-
-          cosign sign --yes "$IMAGE_REFERENCE"
-          cosign attest --yes --predicate evidence/provenance.slsa.json \
-            --type slsaprovenance1 "$IMAGE_REFERENCE"
-          cosign attest --yes --predicate evidence/image-sbom.spdx.json \
-            --type spdxjson "$IMAGE_REFERENCE"
-
-          cosign verify \
-            --certificate-identity "$workflow_identity" \
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            "$IMAGE_REFERENCE" > evidence/cosign-signature.json
-          cosign verify-attestation --type slsaprovenance1 \
-            --certificate-identity "$workflow_identity" \
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            "$IMAGE_REFERENCE" > evidence/cosign-provenance.json
-          cosign verify-attestation --type spdxjson \
-            --certificate-identity "$workflow_identity" \
-            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            "$IMAGE_REFERENCE" > evidence/cosign-sbom.json
+            # Match push.paths-ignore; a rename into docs must still expose the code deletion.
+            if git diff --quiet --no-renames --no-ext-diff "$GITHUB_SHA" "$current_sha" -- . \
+              ':(glob,exclude)**/*.md' ':(glob,exclude)docs/**' \
+              ':(exclude).gitignore' ':(glob,exclude).claude/**'; then
+              echo "::notice::Default advanced only in ignored paths; deploying the tested source $GITHUB_SHA"
+            else
+              diff_status=$?
+              if [[ "$diff_status" -eq 1 ]]; then
+                echo "::error::Refusing stale deployment $GITHUB_SHA; current default $current_sha changes deployable files"
+              else
+                echo "::error::Git deployable-file comparison failed with status $diff_status"
+              fi
+              exit 1
+            fi
+          fi
 
       - name: Arm rollback before production mutation
         shell: bash
         run: echo "DEPLOYMENT_MUTATED=true" >> "$GITHUB_ENV"
 
       - name: Activate inspected digest as production release
+        timeout-minutes: 5
         shell: bash
         run: |
           set -euo pipefail
@@ -304,7 +538,10 @@ jobs:
             fi
             sleep 2
           done
-          [[ "$absent" -ge 3 ]]
+          if [[ "$absent" -lt 3 ]]; then
+            echo "::error::The sole writer did not quiesce; refusing to repin its container"
+            exit 1
+          fi
 
           az webapp config container set --resource-group "$RG" --name "$WEBAPP" \
             --container-image-name "$IMAGE_REFERENCE" \
@@ -317,69 +554,20 @@ jobs:
 
           az webapp start --resource-group "$RG" --name "$WEBAPP" --output none
 
-      - name: Verify candidate is the exact release
-        shell: bash
+      - name: Verify and promote the exact release within ten minutes
+        timeout-minutes: 10
+        shell: timeout --signal=TERM --kill-after=5s 595s bash --noprofile --norc -e -o pipefail {0}
         run: |
           set -euo pipefail
-          confirm=0
-          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
-            nonce="$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$attempt"
-            live="$(curl -sS --max-time "$HTTP_TIMEOUT_SECONDS" -o /dev/null -w '%{http_code}' \
-              "$PRODUCTION_URL$LIVE_PATH?probe=$nonce" 2>/dev/null || true)"
-            ready="$(curl -sS --max-time "$HTTP_TIMEOUT_SECONDS" \
-              "$PRODUCTION_URL$READY_PATH?probe=$nonce" 2>/dev/null || echo '{}')"
-            ver="$(curl -sS --max-time "$HTTP_TIMEOUT_SECONDS" \
-              "$PRODUCTION_URL$VERSION_PATH?probe=$nonce" 2>/dev/null || echo '{}')"
+          source scripts/deployment-health.sh
 
-            commit="$(jq -r '.commit // ""' <<<"$ver" 2>/dev/null || echo "")"
-            build_id="$(jq -r '.buildId // ""' <<<"$ver" 2>/dev/null || echo "")"
-            instance="$(jq -r '.instanceId // ""' <<<"$ver" 2>/dev/null || echo "")"
-
-            ok=1
-            [[ "$live" == "200" ]] || ok=0
-            jq -e '.status == "ready"' <<<"$ready" > /dev/null 2>&1 || ok=0
-            [[ "$commit" == "$GITHUB_SHA" ]] || ok=0
-            [[ "$build_id" == "$BUILD_ID" ]] || ok=0
-            if [[ -n "$PREVIOUS_INSTANCE_ID" && "$instance" == "$PREVIOUS_INSTANCE_ID" ]]; then ok=0; fi
-
-            if [[ "$ok" == "1" ]]; then
-              confirm=$((confirm + 1))
-              echo "exact confirmation $confirm/$REQUIRED_CONFIRMATIONS (attempt $attempt)"
-              [[ "$confirm" -ge "$REQUIRED_CONFIRMATIONS" ]] && break
-            else
-              [[ "$confirm" -gt 0 ]] && echo "streak reset at attempt $attempt (live=$live commit=${commit:-none} buildId=${build_id:-none})"
-              confirm=0
-            fi
-            sleep "$POLL_INTERVAL_SECONDS"
-          done
-          [[ "$confirm" -ge "$REQUIRED_CONFIRMATIONS" ]]
-
-      - name: Promote verified digest to :latest
-        shell: bash
-        run: |
-          set -euo pipefail
+          verify_release candidate "$MAX_ATTEMPTS" "$GITHUB_SHA" "$BUILD_ID" "$PREVIOUS_INSTANCE_ID"
           latest="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY:latest"
           docker tag "$IMAGE_REFERENCE" "$latest"
           docker push "$latest"
           [[ "$(az acr repository show --name "$ACR" --image "$IMAGE_REPOSITORY:latest" \
             --query digest --output tsv)" == "$IMAGE_DIGEST" ]]
-
-      - name: Confirm promoted release
-        shell: bash
-        run: |
-          set -euo pipefail
-          confirm=0
-          for attempt in $(seq 1 12); do
-            ver="$(curl -sS --max-time "$HTTP_TIMEOUT_SECONDS" \
-              "$PRODUCTION_URL$VERSION_PATH?promoted=$GITHUB_RUN_ID-$attempt" 2>/dev/null || echo '{}')"
-            if [[ "$(jq -r '.commit // ""' <<<"$ver")" == "$GITHUB_SHA" ]]; then
-              confirm=$((confirm + 1)); [[ "$confirm" -ge "$REQUIRED_CONFIRMATIONS" ]] && break
-            else
-              confirm=0
-            fi
-            sleep "$POLL_INTERVAL_SECONDS"
-          done
-          [[ "$confirm" -ge "$REQUIRED_CONFIRMATIONS" ]]
+          verify_release promoted 12 "$GITHUB_SHA" "$BUILD_ID" "$PREVIOUS_INSTANCE_ID"
 
           jq -n \
             --arg sha "$GITHUB_SHA" \
@@ -387,9 +575,10 @@ jobs:
             --arg image "$IMAGE_REFERENCE" \
             --arg previous "$PREVIOUS_IMAGE_REFERENCE" \
             --arg run "$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
+            --arg diagnostics "deployment-diagnostics-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT" \
             '{sha: $sha, buildId: $buildId, image: $image, previousImage: $previous,
-              workflowRun: $run, confirmations: 3, signed: true, provenanceAttested: true,
-              sbomAttested: true, rollbackPerformed: false}' > evidence/deployment.json
+              workflowRun: $run, confirmations: 3, diagnosticsArtifact: $diagnostics,
+              rollbackPerformed: false}' > evidence/deployment.json
           {
             echo "### Lantern deployed"
             echo "- Commit: \`$GITHUB_SHA\`"
@@ -399,8 +588,8 @@ jobs:
 
       - name: Restore prior release after failure or cancellation
         if: ${{ always() && (failure() || cancelled()) && env.DEPLOYMENT_MUTATED == 'true' }}
-        timeout-minutes: 6
-        shell: bash
+        timeout-minutes: 4
+        shell: timeout --signal=TERM --kill-after=5s 235s bash --noprofile --norc -e -o pipefail {0}
         run: |
           set -euo pipefail
           mkdir -p evidence
@@ -419,49 +608,53 @@ jobs:
             fi
             sleep 2
           done
-
-          if [[ -n "$PREVIOUS_IMAGE_REFERENCE" ]]; then
-            az webapp config container set --resource-group "$RG" --name "$WEBAPP" \
-              --container-image-name "$PREVIOUS_IMAGE_REFERENCE" \
-              --container-registry-url "https://$ACR_LOGIN_SERVER" --output none
+          if [[ "$absent" -lt 3 ]]; then
+            echo "::error::Rollback could not prove the sole writer stopped; refusing to repin"
+            exit 1
           fi
-          if [[ -n "$PREVIOUS_BUILD_SHA_SETTING" && -n "$PREVIOUS_BUILD_ID_SETTING" ]]; then
+
+          az webapp config container set --resource-group "$RG" --name "$WEBAPP" \
+            --container-image-name "$PREVIOUS_IMAGE_REFERENCE" \
+            --container-registry-url "https://$ACR_LOGIN_SERVER" --output none
+          [[ "$(az webapp config show --resource-group "$RG" --name "$WEBAPP" \
+            --query linuxFxVersion --output tsv)" == "DOCKER|$PREVIOUS_IMAGE_REFERENCE" ]]
+
+          restore_settings=()
+          delete_settings=()
+          if [[ "$PREVIOUS_HAD_BUILD_SHA" == "true" ]]; then
+            restore_settings+=("BUILD_SHA=$PREVIOUS_BUILD_SHA_SETTING")
+          else
+            delete_settings+=(BUILD_SHA)
+          fi
+          if [[ "$PREVIOUS_HAD_BUILD_ID" == "true" ]]; then
+            restore_settings+=("BUILD_ID=$PREVIOUS_BUILD_ID_SETTING")
+          else
+            delete_settings+=(BUILD_ID)
+          fi
+          if [[ "${#restore_settings[@]}" -gt 0 ]]; then
             az webapp config appsettings set --resource-group "$RG" --name "$WEBAPP" \
-              --settings "BUILD_SHA=$PREVIOUS_BUILD_SHA_SETTING" "BUILD_ID=$PREVIOUS_BUILD_ID_SETTING" --output none
+              --settings "${restore_settings[@]}" --output none
+          fi
+          if [[ "${#delete_settings[@]}" -gt 0 ]]; then
+            az webapp config appsettings delete --resource-group "$RG" --name "$WEBAPP" \
+              --setting-names "${delete_settings[@]}" --output none
           fi
           az webapp start --resource-group "$RG" --name "$WEBAPP" --output none
 
-          if [[ "$PREVIOUS_LATEST_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-            prev_latest="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY@$PREVIOUS_LATEST_DIGEST"
-            az acr login --name "$ACR" || true
-            docker pull "$prev_latest" \
-              && docker tag "$prev_latest" "$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY:latest" \
-              && docker push "$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY:latest" || true
-          fi
+          prev_latest="$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY@$PREVIOUS_LATEST_DIGEST"
+          docker tag "$prev_latest" "$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY:latest"
+          docker push "$ACR_LOGIN_SERVER/$IMAGE_REPOSITORY:latest"
+          [[ "$(az acr repository show --name "$ACR" --image "$IMAGE_REPOSITORY:latest" \
+            --query digest --output tsv)" == "$PREVIOUS_LATEST_DIGEST" ]]
 
-          restored=0
-          for attempt in $(seq 1 "$ROLLBACK_MAX_ATTEMPTS"); do
-            live="$(curl -sS --max-time "$HTTP_TIMEOUT_SECONDS" -o /dev/null -w '%{http_code}' \
-              "$PRODUCTION_URL$LIVE_PATH?rollback-proof=$GITHUB_RUN_ID-$attempt" 2>/dev/null || true)"
-            ver="$(curl -sS --max-time "$HTTP_TIMEOUT_SECONDS" \
-              "$PRODUCTION_URL$VERSION_PATH?rollback-proof=$GITHUB_RUN_ID-$attempt" 2>/dev/null || echo '{}')"
-            commit="$(jq -r '.commit // ""' <<<"$ver")"
-            match=1
-            [[ "$live" == "200" ]] || match=0
-            if [[ -n "$PREVIOUS_COMMIT" && "$commit" != "$PREVIOUS_COMMIT" ]]; then match=0; fi
-            if [[ "$match" == "1" ]]; then
-              restored=$((restored + 1)); [[ "$restored" -ge 3 ]] && break
-            else
-              restored=0
-            fi
-            sleep "$POLL_INTERVAL_SECONDS"
-          done
-          [[ "$restored" -ge 3 ]]
+          source scripts/deployment-health.sh
+          verify_release rollback "$ROLLBACK_MAX_ATTEMPTS" "$PREVIOUS_COMMIT" "$PREVIOUS_BUILD_ID"
 
           jq -n \
             --arg image "$PREVIOUS_IMAGE_REFERENCE" \
             --arg commit "$PREVIOUS_COMMIT" \
-            '{rollbackPerformed: true, restoredImage: $image, restoredCommit: $commit}' \
+            --arg buildId "$PREVIOUS_BUILD_ID" \
+            '{rollbackPerformed: true, restoredImage: $image, restoredCommit: $commit, restoredBuildId: $buildId}' \
             > evidence/rollback.json
 
       - name: Upload nonsecret deployment evidence

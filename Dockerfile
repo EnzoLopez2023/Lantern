@@ -12,8 +12,7 @@ RUN npm ci --no-audit --no-fund \
 FROM dependencies AS build
 
 COPY . .
-RUN npm run typecheck \
-  && npm run build \
+RUN npm run build \
   && npm prune --omit=dev \
   && npm cache clean --force
 

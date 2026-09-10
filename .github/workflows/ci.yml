@@ -1,8 +1,8 @@
 name: CI
 
 # Pull requests only. Pushes to main are validated by the first stage of
-# deploy.yml (npm run check + prod-dep audit + a full image build) before
-# anything ships, so running CI on main as well would just double the work.
+# deploy.yml (source checks and the tested image build) before anything ships,
+# so running CI on main as well would just double the work.
 on:
   pull_request:
 
@@ -13,13 +13,32 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci --no-audit --no-fund
       - name: Run repository checks, including icon drift
-        run: npm run check
+        run: npm run check:source
       - run: npm audit --omit=dev --audit-level=high
-      - run: docker build --tag lantern-ci:${{ github.sha }} .
+      - name: Set up cached runner builder
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+      - name: Build the image once
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8
+        with:
+          context: .
+          load: true
+          push: false
+          tags: lantern-ci:${{ github.sha }}
+          cache-from: type=gha,scope=lantern
+          cache-to: type=gha,mode=max,scope=lantern
+      - name: Exercise native SQLite and recovery in the built image
+        env:
+          CANDIDATE_TAG: lantern-ci:${{ github.sha }}
+        run: |
+          docker run --rm --env NODE_ENV=test \
+            --tmpfs /app/data:uid=1000,gid=1000,mode=0700 \
+            --mount "type=bind,source=$GITHUB_WORKSPACE/test,target=/app/test,readonly" \
+            --entrypoint node "$CANDIDATE_TAG" --test \
+            test/backend/database.test.js test/backend/bootstrap.test.js test/backend/recovery.test.js

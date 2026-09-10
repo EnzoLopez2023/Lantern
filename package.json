@@ -1,6 +1,6 @@
 {
   "name": "lantern",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "description": "Lantern — an independent knowledge base and study hub.",
@@ -24,7 +24,8 @@
     "backup": "node scripts/recovery.mjs backup",
     "backup:verify": "node scripts/recovery.mjs verify",
     "restore:verify": "node scripts/recovery.mjs restore-verify",
-    "check": "npm run icons:check && npm run typecheck && npm run lint && npm test && npm run build"
+    "check:source": "npm run icons:check && npm run typecheck && npm run lint && npm test",
+    "check": "npm run check:source && npm run build"
   },
   "dependencies": {
     "@azure/msal-browser": "^4.25.0",
